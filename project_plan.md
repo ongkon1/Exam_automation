@@ -41,9 +41,14 @@ when a callback arrives with no `call_id`. `phone_number`, `transcript_text` and
 **Matching a transcript to a student.** The browser never learns Speaklar's call id, so matching happens
 in two steps:
 
+Voice exams are recorded **per student, not per subject** — the student picks nothing before calling and the
+examiner asks in-call which subjects they are sitting. Results are written with the `WEBCALL_SUBJECT` label
+(default `General`).
+
 1. **At call start** — `public/asset/js/voice-exam-embed.js` hooks `SIP.UA.prototype.invite` (Speaklar dials
-   over SIP.js, exposed as `window.SIP`) and POSTs the chosen subject to `student/voice-exam/sessions`. The
-   server opens a `call_sessions` row holding the student, their phone number and that subject.
+   over SIP.js, exposed as `window.SIP`) and POSTs to `student/voice-exam/sessions`. The server opens a
+   `call_sessions` row recording the student, their phone number and the time. This is an audit trail of
+   attempts; matching does not depend on it.
 2. **On the callback** — the payload carries only a call id, so the job calls Speaklar's status endpoint:
 
    ```
@@ -52,9 +57,9 @@ in two steps:
    ```
 
    `calls[0].cdr.dst` is the number the student called from — **not** `src` / `port` / `extension`, which are
-   all the internal channel (e.g. `770115`). That number identifies the student; the subject comes from their
-   most recent unclaimed session inside `WEBCALL_SESSION_WINDOW_MINUTES` (default 6 hours). The session is
-   then stamped `matched_at` so a later call cannot reuse it.
+   all the internal channel (e.g. `770115`). That number alone identifies the student. Their most recent
+   unclaimed session inside `WEBCALL_SESSION_WINDOW_MINUTES` (default 6 hours) is stamped `matched_at` so one
+   call is not counted against two sessions.
 
 If a call id *is* ever known up front it still short-circuits step 2, and can only be claimed once — a second
 student posting the same id is rejected with 409.

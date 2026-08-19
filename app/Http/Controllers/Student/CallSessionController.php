@@ -15,14 +15,14 @@ class CallSessionController extends Controller
     /**
      * Open a call session as the student starts an exam.
      *
-     * The browser never learns the provider's call id, so the session records the
-     * student, their phone number and the subject they picked. The transcript callback
-     * is reconciled against it later using the number Speaklar reports for the call.
+     * Voice exams are recorded per student, so there is no subject to capture — this
+     * simply records that the student started a call, and their number for reference.
+     * The transcript callback is reconciled later using the number Speaklar reports.
      */
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'subject' => ['required', 'string', 'max:255'],
+            'subject' => ['nullable', 'string', 'max:255'],
             'call_id' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -41,7 +41,7 @@ class CallSessionController extends Controller
             $session = CallSession::updateOrCreate(['call_id' => $callId], [
                 'student_id' => $student->id,
                 'phone' => $student->phone,
-                'subject' => $data['subject'],
+                'subject' => $data['subject'] ?? null,
                 'started_at' => $existing?->started_at ?? now(),
             ]);
 
@@ -53,12 +53,12 @@ class CallSessionController extends Controller
         $session = CallSession::openFor($student);
 
         if ($session && $session->started_at?->gt(now()->subMinutes(2))) {
-            $session->update(['subject' => $data['subject']]);
+            $session->update(['subject' => $data['subject'] ?? $session->subject]);
         } else {
             $session = CallSession::create([
                 'student_id' => $student->id,
                 'phone' => $student->phone,
-                'subject' => $data['subject'],
+                'subject' => $data['subject'] ?? null,
                 'started_at' => now(),
             ]);
         }

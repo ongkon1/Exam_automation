@@ -198,9 +198,8 @@ class SpeaklarCallLookupTest extends TestCase
         $this->assertNotEmpty($transcript->transcript);
     }
 
-    public function test_a_matched_student_with_no_open_session_is_left_unmatched(): void
+    public function test_a_matched_student_needs_no_session_because_results_are_student_wise(): void
     {
-        // The student is identified, but nothing tells us which subject they sat.
         $this->fakeSpeaklar();
 
         $this->postCallback();
@@ -208,15 +207,16 @@ class SpeaklarCallLookupTest extends TestCase
         $transcript = ExamTranscript::first();
 
         $this->assertSame($this->student->id, $transcript->student_id);
-        $this->assertSame('', (string) $transcript->subject);
-        $this->assertSame(ExamTranscript::STATUS_UNMATCHED, $transcript->status);
+        $this->assertSame(ExamTranscript::STATUS_EVALUATED, $transcript->status);
+        // No subject was captured anywhere, so the configured label is used.
+        $this->assertSame(config('webcall.subject'), $transcript->result->subject);
     }
 
-    public function test_a_stale_session_outside_the_window_is_not_used(): void
+    public function test_a_stale_session_outside_the_window_is_not_consumed(): void
     {
         $this->fakeSpeaklar();
 
-        CallSession::create([
+        $stale = CallSession::create([
             'student_id' => $this->student->id,
             'subject' => 'English',
             'started_at' => now()->subMinutes(400),
@@ -224,7 +224,11 @@ class SpeaklarCallLookupTest extends TestCase
 
         $this->postCallback();
 
-        $this->assertSame(ExamTranscript::STATUS_UNMATCHED, ExamTranscript::first()->status);
+        // The student still matches on their phone number, so the exam is scored...
+        $this->assertSame(ExamTranscript::STATUS_EVALUATED, ExamTranscript::first()->status);
+        // ...but a session from hours ago is neither claimed nor used.
+        $this->assertNull($stale->refresh()->matched_at);
+        $this->assertSame(config('webcall.subject'), ExamTranscript::first()->result->subject);
     }
 
     public function test_a_failed_lookup_leaves_the_transcript_unmatched(): void

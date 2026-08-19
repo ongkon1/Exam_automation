@@ -34,7 +34,8 @@
                         <dt class="col-5">Student</dt>
                         <dd class="col-7">{{ $transcript->student?->name ?? '—' }}</dd>
                         <dt class="col-5">Phone</dt><dd class="col-7">{{ $transcript->phone }}</dd>
-                        <dt class="col-5">Subject</dt><dd class="col-7">{{ $transcript->subject }}</dd>
+                        <dt class="col-5">Subject</dt>
+                        <dd class="col-7">{{ $transcript->subject ?: config('webcall.subject') }}</dd>
                         <dt class="col-5">Status</dt>
                         <dd class="col-7">
                             <span class="badge bg-{{ $transcript->statusVariant() }}">

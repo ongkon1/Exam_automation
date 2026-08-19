@@ -223,6 +223,7 @@ class CallSessionTest extends TestCase
             ->assertOk()
             ->assertSee('data-session-url="'.route('student.voice-exam.sessions.store').'"', false)
             ->assertSee('data-session-end-url="'.route('student.voice-exam.sessions.end').'"', false)
-            ->assertSee('data-subject-select="#webcall-subject"', false);
+            // Voice exams are recorded per student, so there is no subject picker.
+            ->assertDontSee('id="webcall-subject"', false);
     }
 }

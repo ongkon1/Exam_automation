@@ -34,14 +34,14 @@ class EvaluateExamTranscript
 
         // The callback identifies the call by id only, so when nothing matched at
         // intake, ask Speaklar who was on the call.
-        if (! $transcript->student_id || blank($transcript->subject)) {
+        if (! $transcript->student_id) {
             $this->resolveFromProvider($transcript);
             $transcript->refresh();
         }
 
         $student = $transcript->student;
 
-        if (! $student || blank($transcript->subject)) {
+        if (! $student) {
             $transcript->update(['status' => ExamTranscript::STATUS_UNMATCHED]);
 
             return;
@@ -70,7 +70,7 @@ class EvaluateExamTranscript
         $result = Result::create([
             'student_id' => $student->id,
             'exam_name' => config('webcall.exam_name'),
-            'subject' => $transcript->subject,
+            'subject' => $transcript->subject ?: config('webcall.subject'),
             'exam_date' => now()->toDateString(),
             'full_marks' => $fullMarks,
             'marks_obtained' => $evaluation['marks_obtained'],
@@ -94,10 +94,11 @@ class EvaluateExamTranscript
     }
 
     /**
-     * Recover the student and subject for a transcript that arrived with only a call id.
+     * Recover the student for a transcript that arrived with only a call id.
      *
-     * Speaklar's status endpoint gives the number the student called from; the subject
-     * comes from the call session they opened when they pressed Start Exam.
+     * Speaklar's status endpoint gives the number the student called from. The call
+     * session they opened when they pressed Start Exam is claimed at the same time, so
+     * one call cannot be counted against two sessions.
      */
     protected function resolveFromProvider(ExamTranscript $transcript): void
     {
@@ -134,16 +135,17 @@ class EvaluateExamTranscript
         $updates['student_id'] = $student->id;
         $updates['phone'] = PhoneNumber::normalize($call['phone']) ?? $student->phone;
 
-        if (blank($transcript->subject)) {
-            $session = CallSession::openFor($student);
+        $session = CallSession::openFor($student);
 
-            if ($session) {
+        if ($session) {
+            if (blank($transcript->subject) && filled($session->subject)) {
                 $updates['subject'] = $session->subject;
-                $session->update([
-                    'matched_at' => now(),
-                    'call_id' => $session->call_id ?: $transcript->external_id,
-                ]);
             }
+
+            $session->update([
+                'matched_at' => now(),
+                'call_id' => $session->call_id ?: $transcript->external_id,
+            ]);
         }
 
         $transcript->update($updates);

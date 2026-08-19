@@ -14,7 +14,6 @@ class VoiceExamController extends Controller
 
         return view('student.voice-exam', [
             'student' => $student,
-            'subjects' => config('webcall.subjects'),
             // The call widget validates a website field before it will dial, so it is
             // filled with this app's host rather than shown to the student.
             'widgetWebsite' => $this->widgetWebsite(),

@@ -101,20 +101,11 @@
                         <dd class="col-8 mb-0">{{ $student->phone ?: '—' }}</dd>
                     </dl>
 
-                    <p class="form-text mt-0">
+                    <p class="form-text mt-0 mb-3">
                         The call uses the name and number on your profile — your result is matched back to
-                        you by that number.
+                        you by that number. The examiner will ask which subjects you are sitting.
                         <a href="{{ route('student.profile.edit') }}">Update profile</a>
                     </p>
-
-                    <div class="mb-3">
-                        <label for="webcall-subject" class="form-label">Subject</label>
-                        <select id="webcall-subject" class="form-select">
-                            @foreach ($subjects as $subject)
-                                <option value="{{ $subject }}">{{ $subject }}</option>
-                            @endforeach
-                        </select>
-                    </div>
 
                     {{-- The Speaklar widget is relocated into this container by voice-exam-embed.js. --}}
                     <div id="webcall-widget"
@@ -123,7 +114,6 @@
                          data-phone="{{ $student->phone }}"
                          data-email="{{ $student->email }}"
                          data-website="{{ $widgetWebsite }}"
-                         data-subject-select="#webcall-subject"
                          data-session-url="{{ route('student.voice-exam.sessions.store') }}"
                          data-session-end-url="{{ route('student.voice-exam.sessions.end') }}">
                         @if (blank($student->phone))
@@ -159,7 +149,7 @@
                         <tbody>
                         @forelse ($transcripts as $transcript)
                             <tr>
-                                <td>{{ $transcript->subject }}</td>
+                                <td>{{ $transcript->subject ?: config('webcall.subject') }}</td>
                                 <td>{{ $transcript->created_at->diffForHumans() }}</td>
                                 <td class="text-center">
                                     <span class="badge bg-{{ $transcript->statusVariant() }}">

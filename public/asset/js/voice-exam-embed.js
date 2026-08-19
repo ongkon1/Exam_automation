@@ -39,9 +39,6 @@
         return container.dataset.sessionEndUrl || '';
     }
 
-    function subjectSelect() {
-        return document.querySelector(container.dataset.subjectSelect || '#webcall-subject');
-    }
 
     function el(id) {
         return document.getElementById(PREFIX + '-' + id);
@@ -128,12 +125,6 @@
         });
     }
 
-    function currentSubject() {
-        var select = subjectSelect();
-
-        return select ? select.value : '';
-    }
-
     /**
      * SIP.js has moved this around between versions, so try the known locations.
      */
@@ -162,20 +153,19 @@
     }
 
     function trackSession(session) {
-        var subject = currentSubject();
         var registered = false;
         var callId = '';
 
         /**
-         * Speaklar does not hand the browser its call id, so the session is opened with
-         * the subject alone. The server pairs it with the student's phone number, and
-         * the transcript callback is reconciled against that later.
+         * Records that this student started a voice exam. Speaklar does not hand the
+         * browser its call id, so the transcript callback is reconciled later using the
+         * number Speaklar reports for the call.
          *
          * If a SIP Call-ID happens to be readable it is sent along, but nothing depends
          * on it.
          */
         function register() {
-            if (registered || !subject) {
+            if (registered) {
                 return;
             }
 
@@ -186,11 +176,9 @@
                 container.dataset.callId = callId;
             }
 
-            console.info('[voice-exam] exam started, subject', subject, 'call id', callId || '(not provided)');
+            console.info('[voice-exam] exam started, call id', callId || '(not provided)');
 
-            post(sessionUrl(), callId
-                ? { subject: subject, call_id: callId }
-                : { subject: subject });
+            post(sessionUrl(), callId ? { call_id: callId } : {});
         }
 
         function finish() {
@@ -204,18 +192,6 @@
         if (typeof session.on === 'function') {
             session.on('terminated', finish);
             session.on('failed', finish);
-        }
-
-        // Lock the subject in for the duration of the call.
-        var select = subjectSelect();
-
-        if (select) {
-            select.disabled = true;
-
-            if (typeof session.on === 'function') {
-                session.on('terminated', function () { select.disabled = false; });
-                session.on('failed', function () { select.disabled = false; });
-            }
         }
     }
 

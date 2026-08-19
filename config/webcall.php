@@ -26,14 +26,9 @@ return [
     // session the student opened when they pressed Start Exam.
     'session_window_minutes' => (int) env('WEBCALL_SESSION_WINDOW_MINUTES', 360),
 
-    // Subjects a student may choose from before starting a call.
-    'subjects' => [
-        'Mathematics',
-        'English',
-        'Physics',
-        'Chemistry',
-        'Biology',
-        'General Knowledge',
-    ],
+    // Voice exams are recorded per student, not per subject: the student picks nothing
+    // before calling, and the examiner covers whatever subjects come up. This label is
+    // written to the subject column so results stay readable.
+    'subject' => env('WEBCALL_SUBJECT', 'General'),
 
 ];

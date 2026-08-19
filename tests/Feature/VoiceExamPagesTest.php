@@ -42,8 +42,19 @@ class VoiceExamPagesTest extends TestCase
             ->assertSee('data-name="Arif Hossain"', false)
             ->assertSee('data-phone="01766666666"', false)
             ->assertSee('data-email="arif@example.com"', false)
-            ->assertSee('data-website="', false)
-            ->assertSee(config('webcall.subjects')[0]);
+            ->assertSee('data-website="', false);
+    }
+
+    public function test_the_start_an_exam_section_has_no_subject_picker(): void
+    {
+        $student = User::factory()->student()->create(['phone' => '01766666666']);
+
+        // Results are recorded per student; the examiner asks about subjects in-call.
+        $this->actingAs($student)
+            ->get(route('student.voice-exam'))
+            ->assertOk()
+            ->assertDontSee('id="webcall-subject"', false)
+            ->assertDontSee('data-subject-select', false);
     }
 
     public function test_the_start_an_exam_card_is_an_accent_panel_the_widget_blends_into(): void

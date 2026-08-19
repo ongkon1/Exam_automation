@@ -59,7 +59,7 @@
                                 @endif
                             </td>
                             <td>{{ $transcript->phone }}</td>
-                            <td>{{ $transcript->subject }}</td>
+                            <td>{{ $transcript->subject ?: config('webcall.subject') }}</td>
                             <td>{{ $transcript->created_at->diffForHumans() }}</td>
                             <td class="text-center">
                                 <span class="badge bg-{{ $transcript->statusVariant() }}">

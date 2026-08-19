@@ -38,7 +38,11 @@ class WebCallTranscriptController extends Controller
         $session = $callId ? CallSession::where('call_id', $callId)->first() : null;
 
         $student = $session?->student ?? PhoneNumber::findStudent($data['phone'] ?? null);
-        $subject = $session?->subject ?? trim((string) ($data['subject'] ?? ''));
+
+        // Voice exams are recorded per student, so a subject is optional. Left null when
+        // unknown so a session found later can still supply one; the configured label is
+        // applied when the result is written.
+        $subject = $session?->subject ?: (trim((string) ($data['subject'] ?? '')) ?: null);
 
         $transcript = ExamTranscript::create([
             'student_id' => $student?->id,
@@ -52,7 +56,7 @@ class WebCallTranscriptController extends Controller
             'payload' => $request->except('transcript'),
         ]);
 
-        $resolved = $student && $subject !== '';
+        $resolved = (bool) $student;
 
         // Nothing matched at intake, and there is no call id to look the call up by
         // either — there is nothing further the job could do.
