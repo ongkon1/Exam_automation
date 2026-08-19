@@ -7,49 +7,45 @@ use App\Http\Requests\StoreWebCallTranscriptRequest;
 use App\Jobs\EvaluateExamTranscript;
 use App\Models\CallSession;
 use App\Models\ExamTranscript;
-use App\Support\PhoneNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 
 class WebCallTranscriptController extends Controller
 {
     /**
-     * Receive the transcript a voice provider posts when an exam call ends.
+     * Receive the callback a voice provider posts when an exam call ends.
+     *
+     * Only the call id matters. Who sat the exam is decided by looking that id up on
+     * Speaklar — never by anything in this payload — so an open endpoint cannot be used
+     * to write marks against a student who was never called.
      */
     public function __invoke(StoreWebCallTranscriptRequest $request): JsonResponse
     {
         $data = $request->validated();
-        $callId = $data['call_id'] ?? null;
+        $callId = $data['call_id'];
 
         // A provider that retries the callback must not create a second transcript.
-        if ($callId && $existing = ExamTranscript::where('external_id', $callId)->first()) {
+        if ($existing = ExamTranscript::where('external_id', $callId)->first()) {
             Log::info('Duplicate voice exam transcript callback received.', [
                 'transcript_id' => $existing->id,
                 'call_id' => $callId,
             ]);
+
             return response()->json([
                 'status' => 'duplicate',
                 'transcript_id' => $existing->id,
             ]);
         }
 
-        // Speaklar does not give the browser its call id, so this normally misses; it only
-        // hits if some future flow registers one up front. When it misses, the call id is
-        // handed to the job, which looks the call up on Speaklar to identify the student.
-        $session = $callId ? CallSession::where('call_id', $callId)->first() : null;
-
-        $student = $session?->student ?? PhoneNumber::findStudent($data['phone'] ?? null);
-
-        // Voice exams are recorded per student, so a subject is optional. Left null when
-        // unknown so a session found later can still supply one; the configured label is
-        // applied when the result is written.
-        $subject = $session?->subject ?: (trim((string) ($data['subject'] ?? '')) ?: null);
+        // Only set if some future flow registered the call id up front; normally null,
+        // and the provider lookup fills everything in.
+        $session = CallSession::where('call_id', $callId)->first();
 
         $transcript = ExamTranscript::create([
-            'student_id' => $student?->id,
-            'phone' => PhoneNumber::normalize($data['phone'] ?? null) ?? $student?->phone ?? '',
-            'subject' => $subject,
-            'transcript' => $data['transcript'],
+            'student_id' => $session?->student_id,
+            'phone' => $session?->phone ?? '',
+            'subject' => $session?->subject,
+            'transcript' => $data['transcript'] ?? '',
             'summary' => $data['summary'] ?? null,
             'call_result' => $data['result'] ?? null,
             'external_id' => $callId,
@@ -57,35 +53,14 @@ class WebCallTranscriptController extends Controller
             'payload' => $request->except('transcript'),
         ]);
 
-        $resolved = (bool) $student;
-
-        // Nothing matched at intake, and there is no call id to look the call up by
-        // either — there is nothing further the job could do.
-        if (! $resolved && blank($callId)) {
-            $transcript->update(['status' => ExamTranscript::STATUS_UNMATCHED]);
-
-            Log::warning('Voice exam transcript could not be attributed.', [
-                'transcript_id' => $transcript->id,
-                'phone' => $transcript->phone,
-                'subject' => $transcript->subject,
-            ]);
-
-            return response()->json([
-                'status' => 'unmatched',
-                'transcript_id' => $transcript->id,
-                'message' => 'No student matches that phone number. The transcript was stored for review.',
-            ], 202);
-        }
-
         // Runs in this process once the response has been sent, so the provider is not
         // kept waiting on the Speaklar lookup or the OpenAI call. Swap to dispatch() to
         // use a real queue worker.
         EvaluateExamTranscript::dispatchAfterResponse($transcript);
 
         return response()->json([
-            'status' => $resolved ? 'accepted' : 'pending',
+            'status' => 'accepted',
             'transcript_id' => $transcript->id,
-            'message' => $resolved ? null : 'Looking the call up to identify the student.',
         ], 202);
     }
 }

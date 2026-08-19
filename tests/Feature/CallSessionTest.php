@@ -157,7 +157,7 @@ class CallSessionTest extends TestCase
         $this->assertNotSame(ExamTranscript::STATUS_UNMATCHED, $transcript->status);
     }
 
-    public function test_the_call_id_wins_over_a_mismatched_phone_number(): void
+    public function test_a_registered_call_id_wins_over_anything_posted_in_the_payload(): void
     {
         $other = User::factory()->student()->create(['phone' => '01999999999']);
 
@@ -181,8 +181,10 @@ class CallSessionTest extends TestCase
         $this->assertSame('Physics', $transcript->subject);
     }
 
-    public function test_an_unregistered_call_id_still_falls_back_to_the_phone_number(): void
+    public function test_an_unregistered_call_id_does_not_fall_back_to_the_posted_phone(): void
     {
+        // Attribution comes from the Speaklar lookup only. A number in the payload is
+        // ignored, so an open endpoint cannot be used to write marks for a student.
         $this->postCallback([
             'call_id' => 'never-registered@speaklar',
             'phone' => '01766666666',
@@ -192,28 +194,27 @@ class CallSessionTest extends TestCase
 
         $transcript = ExamTranscript::first();
 
-        $this->assertSame($this->student->id, $transcript->student_id);
-        $this->assertSame('English', $transcript->subject);
+        $this->assertNull($transcript->student_id);
+        $this->assertSame(ExamTranscript::STATUS_UNMATCHED, $transcript->status);
+        $this->assertDatabaseCount('results', 0);
     }
 
-    public function test_a_call_id_with_no_session_and_no_phone_is_unmatched(): void
+    public function test_a_call_id_the_provider_does_not_recognise_is_unmatched(): void
     {
-        // Accepted for a provider lookup first; the lookup finds nothing, so it settles
-        // as unmatched rather than being rejected outright.
         $this->postCallback([
             'call_id' => 'never-registered@speaklar',
             'transcript' => 'Examiner: Hello.',
-        ])->assertStatus(202)->assertJson(['status' => 'pending']);
+        ])->assertStatus(202)->assertJson(['status' => 'accepted']);
 
         $this->assertSame(ExamTranscript::STATUS_UNMATCHED, ExamTranscript::first()->status);
         $this->assertDatabaseCount('results', 0);
     }
 
-    public function test_a_callback_without_a_call_id_still_requires_phone_and_subject(): void
+    public function test_a_callback_without_a_call_id_is_rejected(): void
     {
-        $this->postCallback(['transcript' => 'Examiner: Hello.'])
+        $this->postCallback(['transcript' => 'Examiner: Hello.', 'phone' => '01766666666'])
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['phone', 'subject']);
+            ->assertJsonValidationErrors('call_id');
     }
 
     public function test_the_voice_exam_page_exposes_the_session_endpoints(): void

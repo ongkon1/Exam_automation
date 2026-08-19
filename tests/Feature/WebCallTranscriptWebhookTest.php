@@ -8,20 +8,28 @@ use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
+/**
+ * The callback contract: a call id and nothing else. Everything that decides whose
+ * result it is comes from looking that id up on Speaklar.
+ */
 class WebCallTranscriptWebhookTest extends TestCase
 {
     use RefreshDatabase;
 
     protected const SECRET = 'test-webcall-secret';
 
+    protected const CALL_ID = '85a764409b8911f1be2d7e0a46f1ba4d';
+
     protected function setUp(): void
     {
         parent::setUp();
 
         config(['webcall.webhook_secret' => self::SECRET]);
+        Http::fake();
     }
 
     /**
@@ -49,77 +57,63 @@ class WebCallTranscriptWebhookTest extends TestCase
         $this->assertNotContains(StartSession::class, $middleware);
     }
 
-    public function test_a_transcript_is_stored_and_matched_to_the_student_by_phone(): void
+    public function test_a_call_id_on_its_own_is_a_valid_callback(): void
     {
-        $student = User::factory()->student()->create(['phone' => '01766666666']);
+        $this->postCallback(['call_id' => self::CALL_ID])
+            ->assertStatus(202)
+            ->assertJson(['status' => 'accepted']);
 
-        $this->postCallback([
-            'phone' => '01766666666',
-            'subject' => 'Physics',
-            'transcript' => 'Examiner: State the first law. Student: An object stays at rest...',
-            'call_id' => 'call-1',
-        ])->assertStatus(202)->assertJson(['status' => 'accepted']);
-
-        $this->assertDatabaseHas('exam_transcripts', [
-            'student_id' => $student->id,
-            'subject' => 'Physics',
-            'external_id' => 'call-1',
-        ]);
+        $this->assertDatabaseHas('exam_transcripts', ['external_id' => self::CALL_ID]);
     }
 
-    public function test_a_formatted_phone_number_still_matches(): void
+    public function test_the_call_id_is_the_only_required_field(): void
     {
-        $student = User::factory()->student()->create(['phone' => '01766666666']);
+        $this->postCallback(['transcript' => 'Examiner: Hello.', 'summary' => 'x'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('call_id');
 
+        $this->assertDatabaseCount('exam_transcripts', 0);
+    }
+
+    public function test_optional_fields_are_stored_when_provided(): void
+    {
         $this->postCallback([
-            'phone' => '+880 1766-666666',
-            'subject' => 'English',
-            'transcript' => 'Examiner: Introduce yourself. Student: My name is...',
+            'call_id' => self::CALL_ID,
+            'transcript' => 'Examiner: State the first law.',
+            'summary' => '### Call Summary',
+            'result' => 'confirmed',
         ])->assertStatus(202);
 
-        $this->assertSame($student->id, ExamTranscript::first()->student_id);
+        $transcript = ExamTranscript::sole();
+
+        $this->assertSame('Examiner: State the first law.', $transcript->transcript);
+        $this->assertSame('### Call Summary', $transcript->summary);
+        $this->assertSame('confirmed', $transcript->call_result);
     }
 
-    public function test_an_unknown_phone_number_is_kept_as_unmatched(): void
+    public function test_a_phone_number_in_the_payload_never_decides_the_student(): void
     {
-        User::factory()->student()->create(['phone' => '01766666666']);
+        // The spoofing case: an open endpoint must not mint marks from a posted number.
+        $victim = User::factory()->student()->create(['phone' => '01766666666']);
 
         $this->postCallback([
-            'phone' => '01999999999',
-            'subject' => 'Biology',
-            'transcript' => 'Examiner: Define osmosis.',
-        ])->assertStatus(202)->assertJson(['status' => 'unmatched']);
+            'call_id' => self::CALL_ID,
+            'phone' => '01766666666',
+            'subject' => 'Physics',
+            'transcript' => 'Fabricated answers.',
+        ])->assertStatus(202);
 
-        $transcript = ExamTranscript::first();
+        $transcript = ExamTranscript::sole();
 
         $this->assertNull($transcript->student_id);
         $this->assertSame(ExamTranscript::STATUS_UNMATCHED, $transcript->status);
         $this->assertDatabaseCount('results', 0);
-    }
-
-    public function test_an_ambiguous_suffix_match_is_not_guessed(): void
-    {
-        // Two students whose numbers share the trailing digits used for fallback matching.
-        User::factory()->student()->create(['phone' => '8801766666666']);
-        User::factory()->student()->create(['phone' => '1766666666']);
-
-        $this->postCallback([
-            'phone' => '00801766666666',
-            'subject' => 'Physics',
-            'transcript' => 'Examiner: Hello.',
-        ])->assertStatus(202)->assertJson(['status' => 'unmatched']);
+        $this->assertSame(0, $victim->results()->count());
     }
 
     public function test_a_repeated_callback_does_not_create_a_second_transcript(): void
     {
-        User::factory()->student()->create(['phone' => '01766666666']);
-
-        $payload = [
-            'phone' => '01766666666',
-            'subject' => 'Physics',
-            'transcript' => 'Examiner: State the first law.',
-            'call_id' => 'call-duplicate',
-        ];
+        $payload = ['call_id' => self::CALL_ID, 'transcript' => 'Examiner: Hello.'];
 
         $this->postCallback($payload)->assertStatus(202);
         $this->postCallback($payload)->assertOk()->assertJson(['status' => 'duplicate']);
@@ -127,47 +121,32 @@ class WebCallTranscriptWebhookTest extends TestCase
         $this->assertDatabaseCount('exam_transcripts', 1);
     }
 
-    public function test_alternative_provider_field_names_are_accepted(): void
+    public function test_alternative_call_id_field_names_are_accepted(): void
     {
-        $student = User::factory()->student()->create(['phone' => '01766666666']);
+        foreach (['id', 'uuid'] as $index => $field) {
+            $this->postCallback([$field => 'call-'.$index])->assertStatus(202);
 
-        $this->postCallback([
-            'phone_number' => '01766666666',
-            'subject' => 'Chemistry',
-            'transcript_text' => 'Examiner: Define a mole.',
-            'id' => 'call-alt',
-        ])->assertStatus(202);
-
-        $this->assertDatabaseHas('exam_transcripts', [
-            'student_id' => $student->id,
-            'subject' => 'Chemistry',
-            'external_id' => 'call-alt',
-        ]);
+            $this->assertDatabaseHas('exam_transcripts', ['external_id' => 'call-'.$index]);
+        }
     }
 
     public function test_the_callback_is_rejected_without_the_shared_secret(): void
     {
-        $this->postCallback(['phone' => '01766666666', 'subject' => 'Physics', 'transcript' => 'x'], null)
-            ->assertUnauthorized();
-
-        $this->postCallback(['phone' => '01766666666', 'subject' => 'Physics', 'transcript' => 'x'], 'wrong-secret')
-            ->assertUnauthorized();
+        $this->postCallback(['call_id' => self::CALL_ID], null)->assertUnauthorized();
+        $this->postCallback(['call_id' => self::CALL_ID], 'wrong-secret')->assertUnauthorized();
 
         $this->assertDatabaseCount('exam_transcripts', 0);
     }
 
-    public function test_the_callback_is_unavailable_when_no_secret_is_configured(): void
+    public function test_the_callback_is_open_when_no_secret_is_configured(): void
     {
         config(['webcall.webhook_secret' => null]);
 
-        $this->postCallback(['phone' => '01766666666', 'subject' => 'Physics', 'transcript' => 'x'])
-            ->assertStatus(503);
-    }
+        // No header sent at all — the endpoint accepts it.
+        $this->postJson(route('webhooks.webcall.transcript'), ['call_id' => self::CALL_ID])
+            ->assertStatus(202)
+            ->assertJson(['status' => 'accepted']);
 
-    public function test_the_payload_is_validated(): void
-    {
-        $this->postCallback(['subject' => 'Physics'])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors(['phone', 'transcript']);
+        $this->assertDatabaseHas('exam_transcripts', ['external_id' => self::CALL_ID]);
     }
 }

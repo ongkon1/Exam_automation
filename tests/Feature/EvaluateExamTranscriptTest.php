@@ -190,12 +190,17 @@ class EvaluateExamTranscriptTest extends TestCase
         config(['webcall.webhook_secret' => 'test-secret']);
         $this->fakeOpenAi(['marks_obtained' => 88, 'feedback' => 'Excellent reasoning.']);
 
+        // The call id is all the callback sends; the session tells us whose it is.
+        \App\Models\CallSession::factory()->create([
+            'student_id' => $this->student->id,
+            'call_id' => 'call-e2e',
+            'subject' => 'Chemistry',
+        ]);
+
         $this->withHeaders(['X-Webhook-Secret' => 'test-secret'])
             ->postJson(route('webhooks.webcall.transcript'), [
-                'phone' => '01766666666',
-                'subject' => 'Chemistry',
-                'transcript' => 'Examiner: Define a mole. Student: It is 6.022e23 particles.',
                 'call_id' => 'call-e2e',
+                'transcript' => 'Examiner: Define a mole. Student: It is 6.022e23 particles.',
             ])->assertStatus(202);
 
         // dispatchAfterResponse runs when the application terminates, which the test

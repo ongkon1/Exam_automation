@@ -19,24 +19,16 @@ POST /api/webhooks/webcall/transcript
 X-Webhook-Secret: <WEBCALL_WEBHOOK_SECRET>
 Content-Type: application/json
 
-{
-  "order_id": null,
-  "call_id": "85a764409b8911f1be2d7e0a46f1ba4d",
-  "port": "770111",
-  "carrier": "0",
-  "result": "confirmed",
-  "summary": "### Call Summary\n\n...",
-  "transcript": "assistant: ...\nuser: ..."
-}
+{ "call_id": "85a764409b8911f1be2d7e0a46f1ba4d" }
 ```
 
-**The payload carries no phone number and no subject**, so the `call_id` registered when the student
-started the exam is what ties the transcript back to them. `summary` and `result` are stored on the
-transcript (`summary`, `call_result`) and the summary is passed to the AI alongside the transcript.
+**`call_id` is the only required field.** Whose result it is comes solely from looking that id up on
+Speaklar — never from the payload — so an open endpoint cannot be used to write marks against a student who
+was never called. A `phone` posted in the body is ignored for attribution.
 
-Only `transcript` is always required. `phone` and `subject` are still accepted — and become required —
-when a callback arrives with no `call_id`. `phone_number`, `transcript_text` and `id` work as aliases for
-`phone`, `transcript` and `call_id`.
+`transcript`, `summary` and `result` are accepted and stored when sent; when `transcript` is absent it is
+read from the status lookup instead. `id` and `uuid` work as aliases for `call_id`, `transcript_text` for
+`transcript`. The summary is passed to the AI alongside the transcript.
 
 **Matching a transcript to a student.** The browser never learns Speaklar's call id, so matching happens
 in two steps:
@@ -66,9 +58,13 @@ student posting the same id is rejected with 409.
 
 Pipeline:
 
-1. **Authenticate** — the route lives in `routes/api.php`, so it is stateless: no session, no CSRF token.
-   `VerifyWebCallSecret` compares the header against `config('webcall.webhook_secret')` with `hash_equals`.
-   401 on mismatch, 503 when no secret is configured.
+1. **Authenticate (optional)** — the route lives in `routes/api.php`, so it is stateless: no session, no
+   CSRF token. The endpoint is **open by default**: with `WEBCALL_WEBHOOK_SECRET` blank, any caller may post.
+   Setting it makes `VerifyWebCallSecret` require a matching `X-Webhook-Secret` header (compared with
+   `hash_equals`), rejecting anything else with 401.
+
+   Every request is recorded by `LogWebhookRequest` *before* this check, so rejected and malformed calls are
+   still visible to teachers under **Webhook Log**.
 2. **Deduplicate** — a repeated `call_id` returns `{"status":"duplicate"}` without creating a second row.
 3. **Match the student** — see the two-step reconciliation above: the Speaklar status lookup gives the
    number, `App\Support\PhoneNumber::findStudent()` turns it into a student (digits-only comparison, exact

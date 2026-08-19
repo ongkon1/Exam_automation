@@ -24,16 +24,18 @@
             <dl class="row mb-0 small">
                 <dt class="col-sm-3">Callback URL</dt>
                 <dd class="col-sm-9"><code>{{ $endpoint }}</code></dd>
-                <dt class="col-sm-3">Required header</dt>
-                <dd class="col-sm-9"><code>X-Webhook-Secret: &lt;WEBCALL_WEBHOOK_SECRET&gt;</code></dd>
-                <dt class="col-sm-3">Secret configured</dt>
+                <dt class="col-sm-3">Method</dt>
+                <dd class="col-sm-9"><code>POST</code> with a JSON body</dd>
+                <dt class="col-sm-3">Access</dt>
                 <dd class="col-sm-9">
                     @if ($secretConfigured)
-                        <span class="badge bg-success">Yes</span>
+                        <span class="badge bg-success">Protected</span>
+                        — callers must send
+                        <code>X-Webhook-Secret: &lt;WEBCALL_WEBHOOK_SECRET&gt;</code>.
                     @else
-                        <span class="badge bg-danger">No</span>
-                        — every call will be rejected with 503 until
-                        <code>WEBCALL_WEBHOOK_SECRET</code> is set in <code>.env</code>.
+                        <span class="badge bg-warning text-dark">Open</span>
+                        — no header or key required. Anyone who knows this URL can post a transcript.
+                        Set <code>WEBCALL_WEBHOOK_SECRET</code> in <code>.env</code> to require a header.
                     @endif
                 </dd>
             </dl>
@@ -44,9 +46,9 @@
         <div class="alert alert-warning">
             <i class="bi bi-exclamation-triangle me-1"></i>
             <strong>Nothing has reached this endpoint yet.</strong>
-            If the provider says it is calling, check that the URL above is reachable from the internet —
-            a <code>localhost</code> or <code>127.0.0.1</code> address cannot be called from outside this
-            machine.
+            If the provider says it is calling, check the URL above is exactly what they have configured and
+            that it is reachable from the internet — a <code>localhost</code> or <code>127.0.0.1</code>
+            address cannot be called from outside this machine.
         </div>
     @endif
 

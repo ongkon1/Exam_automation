@@ -65,12 +65,9 @@ class WebhookLogTest extends TestCase
 
     public function test_an_accepted_call_is_logged_with_its_response(): void
     {
-        User::factory()->student()->create(['phone' => '01766666666']);
-
         $this->withHeaders([VerifyWebCallSecret::HEADER => self::SECRET])
             ->postJson(route('webhooks.webcall.transcript'), [
-                'phone' => '01766666666',
-                'subject' => 'Physics',
+                'call_id' => 'logged-call-1',
                 'transcript' => 'Examiner: Hello.',
             ])->assertStatus(202);
 
@@ -84,7 +81,7 @@ class WebhookLogTest extends TestCase
     public function test_the_secret_header_value_is_masked(): void
     {
         $this->withHeaders([VerifyWebCallSecret::HEADER => self::SECRET])
-            ->postJson(route('webhooks.webcall.transcript'), ['transcript' => 'x', 'phone' => '1', 'subject' => 's']);
+            ->postJson(route('webhooks.webcall.transcript'), ['call_id' => 'masked-call-1']);
 
         $headers = array_change_key_case(WebhookRequest::sole()->headers);
 
@@ -139,14 +136,36 @@ class WebhookLogTest extends TestCase
             ->assertSee('Nothing has reached this endpoint yet');
     }
 
-    public function test_the_log_flags_a_missing_secret(): void
+    public function test_the_log_shows_the_endpoint_as_open_when_no_secret_is_set(): void
     {
         config(['webcall.webhook_secret' => null]);
 
         $this->actingAs(User::factory()->teacher()->create())
             ->get(route('teacher.webhooks.index'))
             ->assertOk()
-            ->assertSee('every call will be rejected with 503');
+            ->assertSee('Open')
+            ->assertSee('no header or key required');
+    }
+
+    public function test_the_log_shows_the_endpoint_as_protected_when_a_secret_is_set(): void
+    {
+        $this->actingAs(User::factory()->teacher()->create())
+            ->get(route('teacher.webhooks.index'))
+            ->assertOk()
+            ->assertSee('Protected');
+    }
+
+    public function test_an_open_endpoint_still_logs_every_call(): void
+    {
+        config(['webcall.webhook_secret' => null]);
+
+        $this->postJson(route('webhooks.webcall.transcript'), ['transcript' => 'open-marker'])
+            ->assertStatus(422);
+
+        $entry = WebhookRequest::sole();
+
+        $this->assertSame(422, $entry->status_code);
+        $this->assertStringContainsString('open-marker', $entry->body);
     }
 
     public function test_a_teacher_can_clear_the_log(): void

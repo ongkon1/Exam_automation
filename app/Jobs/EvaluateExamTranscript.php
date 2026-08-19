@@ -32,9 +32,9 @@ class EvaluateExamTranscript
             return;
         }
 
-        // The callback identifies the call by id only, so when nothing matched at
-        // intake, ask Speaklar who was on the call.
-        if (! $transcript->student_id) {
+        // The callback carries only a call id, so Speaklar is the source of truth for who
+        // was on the call — and usually for the transcript itself.
+        if (! $transcript->student_id || blank($transcript->transcript)) {
             $this->resolveFromProvider($transcript);
             $transcript->refresh();
         }
@@ -43,6 +43,12 @@ class EvaluateExamTranscript
 
         if (! $student) {
             $transcript->update(['status' => ExamTranscript::STATUS_UNMATCHED]);
+
+            return;
+        }
+
+        if (blank($transcript->transcript)) {
+            $transcript->markFailed('Speaklar returned no transcript for this call.');
 
             return;
         }
@@ -114,11 +120,13 @@ class EvaluateExamTranscript
 
         $updates = [];
 
-        // The callback's transcript is authoritative, but fall back to the API's copy.
+        // The callback may include a transcript; if not, take the API's copy.
         if (blank($transcript->transcript) && filled($call['transcript'])) {
             $updates['transcript'] = $call['transcript'];
         }
 
+        // cdr.dst — the number Speaklar actually dialled. This is the only thing that
+        // decides whose result this is.
         $student = $transcript->student ?? PhoneNumber::findStudent($call['phone']);
 
         if (! $student) {

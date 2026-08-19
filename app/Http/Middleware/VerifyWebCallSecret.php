@@ -11,8 +11,11 @@ class VerifyWebCallSecret
     public const HEADER = 'X-Webhook-Secret';
 
     /**
-     * The transcript callback is a public URL with no session, so it is authenticated
-     * with a shared secret the voice provider sends on every request.
+     * Optional shared-secret check for the transcript callback.
+     *
+     * The endpoint is open by default so a provider that cannot send custom headers can
+     * still post to it. Setting WEBCALL_WEBHOOK_SECRET turns the check back on, and then
+     * every request must carry it.
      *
      * @param  \Closure(Request): (Response)  $next
      */
@@ -21,7 +24,7 @@ class VerifyWebCallSecret
         $expected = config('webcall.webhook_secret');
 
         if (blank($expected)) {
-            abort(503, 'WEBCALL_WEBHOOK_SECRET is not configured.');
+            return $next($request);
         }
 
         $provided = $request->header(self::HEADER, '');

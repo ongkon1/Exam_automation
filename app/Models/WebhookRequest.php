@@ -48,8 +48,8 @@ class WebhookRequest extends Model
             202 => 'Accepted',
             401 => 'Rejected — wrong or missing X-Webhook-Secret header',
             403 => 'Forbidden',
+            404 => 'Rejected — wrong URL or method',
             422 => 'Rejected — payload failed validation',
-            503 => 'Rejected — WEBCALL_WEBHOOK_SECRET is not configured',
             default => 'HTTP '.$this->status_code,
         };
     }

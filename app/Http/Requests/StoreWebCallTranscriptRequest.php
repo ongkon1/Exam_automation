@@ -7,41 +7,44 @@ use Illuminate\Foundation\Http\FormRequest;
 class StoreWebCallTranscriptRequest extends FormRequest
 {
     /**
-     * The provider posts:
-     *   {order_id, call_id, port, carrier, result, summary, transcript}
+     * The callback needs nothing but a call id.
      *
-     * There is no phone number in that payload, so the call id is what ties a
-     * transcript back to a student. phone/subject remain accepted for callbacks
-     * that do carry them.
+     * Everything else — who was on the call, and the transcript itself — is read back
+     * from Speaklar's status endpoint using that id. Anything the provider does send is
+     * accepted and stored, but never trusted to decide whose result this is.
      *
      * @return array<string, mixed>
      */
     public function rules(): array
     {
         return [
-            'transcript' => ['required', 'string'],
-            'call_id' => ['nullable', 'string', 'max:255'],
+            'call_id' => ['required', 'string', 'max:255'],
+            'transcript' => ['nullable', 'string'],
             'summary' => ['nullable', 'string'],
             'result' => ['nullable', 'string', 'max:255'],
-
-            // A known call id already tells us the student and the subject, so those
-            // are only required when the callback has no call id to match on.
-            'phone' => ['required_without:call_id', 'nullable', 'string', 'max:30'],
-            'subject' => ['required_without:call_id', 'nullable', 'string', 'max:255'],
         ];
     }
 
     /**
-     * Accept the field names voice providers commonly use so the callback does not
-     * need a bespoke transformer on their side.
+     * Accept the field names voice providers commonly use for the call id.
      */
     protected function prepareForValidation(): void
     {
+        $callId = $this->input('call_id', $this->input('id', $this->input('uuid')));
+
         $this->merge(array_filter([
-            'phone' => $this->input('phone', $this->input('phone_number')),
-            'subject' => $this->input('subject'),
+            'call_id' => $callId,
             'transcript' => $this->input('transcript', $this->input('transcript_text')),
-            'call_id' => $this->input('call_id', $this->input('id')),
         ], fn ($value) => $value !== null));
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'call_id.required' => 'A call_id is required — it is what identifies the call.',
+        ];
     }
 }

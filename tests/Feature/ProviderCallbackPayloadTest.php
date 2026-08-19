@@ -138,7 +138,7 @@ class ProviderCallbackPayloadTest extends TestCase
         // the only remaining route — and the faked lookup returns nothing usable.
         $this->postCallback($this->payload())
             ->assertStatus(202)
-            ->assertJson(['status' => 'pending']);
+            ->assertJson(['status' => 'accepted']);
 
         $transcript = ExamTranscript::first();
 

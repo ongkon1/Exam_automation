@@ -117,7 +117,7 @@ class SpeaklarCallLookupTest extends TestCase
             'started_at' => now()->subMinutes(5),
         ]);
 
-        $this->postCallback()->assertStatus(202)->assertJson(['status' => 'pending']);
+        $this->postCallback()->assertStatus(202)->assertJson(['status' => 'accepted']);
 
         $transcript = ExamTranscript::first();
 
