@@ -163,33 +163,45 @@
 
     function trackSession(session) {
         var subject = currentSubject();
-        var registered = '';
+        var registered = false;
+        var callId = '';
 
+        /**
+         * Speaklar does not hand the browser its call id, so the session is opened with
+         * the subject alone. The server pairs it with the student's phone number, and
+         * the transcript callback is reconciled against that later.
+         *
+         * If a SIP Call-ID happens to be readable it is sent along, but nothing depends
+         * on it.
+         */
         function register() {
-            var callId = readCallId(session);
-
-            // Registering twice for one call is harmless — the server upserts on call id.
-            if (!callId || callId === registered || !subject) {
+            if (registered || !subject) {
                 return;
             }
 
-            registered = callId;
-            container.dataset.callId = callId;
-            console.info('[voice-exam] call id', callId, 'subject', subject);
-            post(sessionUrl(), { call_id: callId, subject: subject });
+            registered = true;
+            callId = readCallId(session);
+
+            if (callId) {
+                container.dataset.callId = callId;
+            }
+
+            console.info('[voice-exam] exam started, subject', subject, 'call id', callId || '(not provided)');
+
+            post(sessionUrl(), callId
+                ? { subject: subject, call_id: callId }
+                : { subject: subject });
         }
 
         function finish() {
             if (registered) {
-                post(sessionEndUrl(), { call_id: registered });
+                post(sessionEndUrl(), callId ? { call_id: callId } : {});
             }
         }
 
         register();
 
-        // The Call-ID is only certain once the dialog exists, so try again on accept.
         if (typeof session.on === 'function') {
-            session.on('accepted', register);
             session.on('terminated', finish);
             session.on('failed', finish);
         }

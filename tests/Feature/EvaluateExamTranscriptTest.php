@@ -247,7 +247,9 @@ class EvaluateExamTranscriptTest extends TestCase
 
         (new EvaluateExamTranscript($transcript))->handle(app(\App\Services\OpenAiEvaluator::class));
 
-        Http::assertNothingSent();
+        // A provider lookup is attempted (the transcript has a call id), but with no
+        // student resolved it must never reach the evaluator.
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'openai.com'));
         $this->assertSame(ExamTranscript::STATUS_UNMATCHED, $transcript->refresh()->status);
         $this->assertDatabaseCount('results', 0);
     }

@@ -12,29 +12,56 @@ class CallSessionController extends Controller
     /**
      * Claim a call id for the student who just started a voice exam.
      */
+    /**
+     * Open a call session as the student starts an exam.
+     *
+     * The browser never learns the provider's call id, so the session records the
+     * student, their phone number and the subject they picked. The transcript callback
+     * is reconciled against it later using the number Speaklar reports for the call.
+     */
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'call_id' => ['required', 'string', 'max:255'],
             'subject' => ['required', 'string', 'max:255'],
+            'call_id' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $existing = CallSession::where('call_id', $data['call_id'])->first();
+        $student = $request->user();
+        $callId = $data['call_id'] ?? null;
 
-        // A call id is claimed once. Without this, anyone could post another student's
-        // call id and have their transcript — and marks — attributed to themselves.
-        if ($existing && $existing->student_id !== $request->user()->id) {
-            return response()->json(['message' => 'That call is already registered.'], 409);
-        }
+        if ($callId) {
+            $existing = CallSession::where('call_id', $callId)->first();
 
-        $session = CallSession::updateOrCreate(
-            ['call_id' => $data['call_id']],
-            [
-                'student_id' => $request->user()->id,
+            // A call id is claimed once. Without this, anyone could post another
+            // student's call id and have their marks attributed to themselves.
+            if ($existing && $existing->student_id !== $student->id) {
+                return response()->json(['message' => 'That call is already registered.'], 409);
+            }
+
+            $session = CallSession::updateOrCreate(['call_id' => $callId], [
+                'student_id' => $student->id,
+                'phone' => $student->phone,
                 'subject' => $data['subject'],
                 'started_at' => $existing?->started_at ?? now(),
-            ],
-        );
+            ]);
+
+            return response()->json(['status' => 'registered', 'id' => $session->id], 201);
+        }
+
+        // Reuse a session the student just opened rather than stacking duplicates if
+        // the widget fires twice for one call.
+        $session = CallSession::openFor($student);
+
+        if ($session && $session->started_at?->gt(now()->subMinutes(2))) {
+            $session->update(['subject' => $data['subject']]);
+        } else {
+            $session = CallSession::create([
+                'student_id' => $student->id,
+                'phone' => $student->phone,
+                'subject' => $data['subject'],
+                'started_at' => now(),
+            ]);
+        }
 
         return response()->json(['status' => 'registered', 'id' => $session->id], 201);
     }
@@ -45,12 +72,14 @@ class CallSessionController extends Controller
     public function end(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'call_id' => ['required', 'string', 'max:255'],
+            'call_id' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $session = CallSession::where('call_id', $data['call_id'])
-            ->where('student_id', $request->user()->id)
-            ->first();
+        $student = $request->user();
+
+        $session = filled($data['call_id'] ?? null)
+            ? CallSession::where('call_id', $data['call_id'])->where('student_id', $student->id)->first()
+            : CallSession::openFor($student);
 
         if (! $session) {
             return response()->json(['message' => 'Unknown call.'], 404);

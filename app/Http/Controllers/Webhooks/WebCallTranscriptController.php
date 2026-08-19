@@ -23,6 +23,10 @@ class WebCallTranscriptController extends Controller
 
         // A provider that retries the callback must not create a second transcript.
         if ($callId && $existing = ExamTranscript::where('external_id', $callId)->first()) {
+            Log::info('Duplicate voice exam transcript callback received.', [
+                'transcript_id' => $existing->id,
+                'call_id' => $callId,
+            ]);
             return response()->json([
                 'status' => 'duplicate',
                 'transcript_id' => $existing->id,
@@ -44,16 +48,19 @@ class WebCallTranscriptController extends Controller
             'summary' => $data['summary'] ?? null,
             'call_result' => $data['result'] ?? null,
             'external_id' => $callId,
-            'status' => $student && $subject !== ''
-                ? ExamTranscript::STATUS_PENDING
-                : ExamTranscript::STATUS_UNMATCHED,
+            'status' => ExamTranscript::STATUS_PENDING,
             'payload' => $request->except('transcript'),
         ]);
 
-        if (! $student || $subject === '') {
+        $resolved = $student && $subject !== '';
+
+        // Nothing matched at intake, and there is no call id to look the call up by
+        // either — there is nothing further the job could do.
+        if (! $resolved && blank($callId)) {
+            $transcript->update(['status' => ExamTranscript::STATUS_UNMATCHED]);
+
             Log::warning('Voice exam transcript could not be attributed.', [
                 'transcript_id' => $transcript->id,
-                'call_id' => $callId,
                 'phone' => $transcript->phone,
                 'subject' => $transcript->subject,
             ]);
@@ -61,19 +68,19 @@ class WebCallTranscriptController extends Controller
             return response()->json([
                 'status' => 'unmatched',
                 'transcript_id' => $transcript->id,
-                'message' => $student
-                    ? 'No subject could be resolved for that call. The transcript was stored for review.'
-                    : 'No student matches that call id or phone number. The transcript was stored for review.',
+                'message' => 'No student matches that phone number. The transcript was stored for review.',
             ], 202);
         }
 
         // Runs in this process once the response has been sent, so the provider is not
-        // kept waiting on the OpenAI call. Swap to dispatch() to use a real queue worker.
+        // kept waiting on the Speaklar lookup or the OpenAI call. Swap to dispatch() to
+        // use a real queue worker.
         EvaluateExamTranscript::dispatchAfterResponse($transcript);
 
         return response()->json([
-            'status' => 'accepted',
+            'status' => $resolved ? 'accepted' : 'pending',
             'transcript_id' => $transcript->id,
+            'message' => $resolved ? null : 'Looking the call up to identify the student.',
         ], 202);
     }
 }

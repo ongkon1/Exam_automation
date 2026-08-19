@@ -134,10 +134,11 @@ class ProviderCallbackPayloadTest extends TestCase
     {
         Http::fake();
 
-        // No call_sessions row, and the payload has no phone to fall back on.
+        // No call_sessions row and no phone in the payload, so the provider lookup is
+        // the only remaining route — and the faked lookup returns nothing usable.
         $this->postCallback($this->payload())
             ->assertStatus(202)
-            ->assertJson(['status' => 'unmatched']);
+            ->assertJson(['status' => 'pending']);
 
         $transcript = ExamTranscript::first();
 
@@ -146,7 +147,9 @@ class ProviderCallbackPayloadTest extends TestCase
         // The content is still kept so a teacher can reconcile it.
         $this->assertStringContainsString('Newton', $transcript->summary);
         $this->assertNotEmpty($transcript->transcript);
-        Http::assertNothingSent();
+        // No marks were invented for an unidentified student.
+        $this->assertDatabaseCount('results', 0);
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'openai.com'));
     }
 
     public function test_the_summary_is_passed_to_the_ai_alongside_the_transcript(): void

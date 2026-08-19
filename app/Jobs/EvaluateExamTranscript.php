@@ -2,10 +2,13 @@
 
 namespace App\Jobs;
 
+use App\Models\CallSession;
 use App\Models\ExamTranscript;
 use App\Models\Result;
 use App\Models\TeacherSetting;
 use App\Services\OpenAiEvaluator;
+use App\Services\SpeaklarClient;
+use App\Support\PhoneNumber;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
@@ -29,9 +32,16 @@ class EvaluateExamTranscript
             return;
         }
 
+        // The callback identifies the call by id only, so when nothing matched at
+        // intake, ask Speaklar who was on the call.
+        if (! $transcript->student_id || blank($transcript->subject)) {
+            $this->resolveFromProvider($transcript);
+            $transcript->refresh();
+        }
+
         $student = $transcript->student;
 
-        if (! $student) {
+        if (! $student || blank($transcript->subject)) {
             $transcript->update(['status' => ExamTranscript::STATUS_UNMATCHED]);
 
             return;
@@ -81,6 +91,62 @@ class EvaluateExamTranscript
             'transcript_id' => $transcript->id,
             'result_id' => $result->id,
         ]);
+    }
+
+    /**
+     * Recover the student and subject for a transcript that arrived with only a call id.
+     *
+     * Speaklar's status endpoint gives the number the student called from; the subject
+     * comes from the call session they opened when they pressed Start Exam.
+     */
+    protected function resolveFromProvider(ExamTranscript $transcript): void
+    {
+        if (blank($transcript->external_id)) {
+            return;
+        }
+
+        $call = app(SpeaklarClient::class)->findCall($transcript->external_id);
+
+        if (! $call) {
+            return;
+        }
+
+        $updates = [];
+
+        // The callback's transcript is authoritative, but fall back to the API's copy.
+        if (blank($transcript->transcript) && filled($call['transcript'])) {
+            $updates['transcript'] = $call['transcript'];
+        }
+
+        $student = $transcript->student ?? PhoneNumber::findStudent($call['phone']);
+
+        if (! $student) {
+            Log::warning('Speaklar call resolved to no known student.', [
+                'transcript_id' => $transcript->id,
+                'phone' => $call['phone'],
+            ]);
+
+            $transcript->update($updates + ['phone' => PhoneNumber::normalize($call['phone']) ?? $transcript->phone]);
+
+            return;
+        }
+
+        $updates['student_id'] = $student->id;
+        $updates['phone'] = PhoneNumber::normalize($call['phone']) ?? $student->phone;
+
+        if (blank($transcript->subject)) {
+            $session = CallSession::openFor($student);
+
+            if ($session) {
+                $updates['subject'] = $session->subject;
+                $session->update([
+                    'matched_at' => now(),
+                    'call_id' => $session->call_id ?: $transcript->external_id,
+                ]);
+            }
+        }
+
+        $transcript->update($updates);
     }
 
     /**

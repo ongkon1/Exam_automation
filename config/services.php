@@ -19,6 +19,11 @@ return [
         'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
     ],
 
+    'speaklar' => [
+        'url' => env('SPEAKLAR_API_URL', 'https://app.speaklar.com'),
+        'token' => env('SPEAKLAR_API_TOKEN'),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

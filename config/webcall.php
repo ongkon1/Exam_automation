@@ -21,6 +21,11 @@ return [
     // The exam_name written onto results generated from a voice exam.
     'exam_name' => env('WEBCALL_EXAM_NAME', 'Voice Exam'),
 
+    // How far back to look for the call session a transcript belongs to. The provider
+    // gives us the student's number but not the subject, so the subject comes from the
+    // session the student opened when they pressed Start Exam.
+    'session_window_minutes' => (int) env('WEBCALL_SESSION_WINDOW_MINUTES', 360),
+
     // Subjects a student may choose from before starting a call.
     'subjects' => [
         'Mathematics',

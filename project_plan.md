@@ -38,10 +38,26 @@ Only `transcript` is always required. `phone` and `subject` are still accepted �
 when a callback arrives with no `call_id`. `phone_number`, `transcript_text` and `id` work as aliases for
 `phone`, `transcript` and `call_id`.
 
-**Call id capture.** Speaklar dials over SIP.js (`speaklar.min.js` is SIP.js exposed as `window.SIP`).
-`public/asset/js/voice-exam-embed.js` hooks `SIP.UA.prototype.invite`, reads the SIP Call-ID off the returned
-session, and POSTs it with the chosen subject to `student/voice-exam/sessions`. A call id can be claimed once
-— a second student posting the same id is rejected with 409, so transcripts and marks cannot be hijacked.
+**Matching a transcript to a student.** The browser never learns Speaklar's call id, so matching happens
+in two steps:
+
+1. **At call start** — `public/asset/js/voice-exam-embed.js` hooks `SIP.UA.prototype.invite` (Speaklar dials
+   over SIP.js, exposed as `window.SIP`) and POSTs the chosen subject to `student/voice-exam/sessions`. The
+   server opens a `call_sessions` row holding the student, their phone number and that subject.
+2. **On the callback** — the payload carries only a call id, so the job calls Speaklar's status endpoint:
+
+   ```
+   GET https://app.speaklar.com/api/ai-bulk-calls/status?call_id=<id>
+   Authorization: Bearer <SPEAKLAR_API_TOKEN>
+   ```
+
+   `calls[0].cdr.dst` is the number the student called from — **not** `src` / `port` / `extension`, which are
+   all the internal channel (e.g. `770115`). That number identifies the student; the subject comes from their
+   most recent unclaimed session inside `WEBCALL_SESSION_WINDOW_MINUTES` (default 6 hours). The session is
+   then stamped `matched_at` so a later call cannot reuse it.
+
+If a call id *is* ever known up front it still short-circuits step 2, and can only be claimed once — a second
+student posting the same id is rejected with 409.
 
 Pipeline:
 
@@ -49,12 +65,11 @@ Pipeline:
    `VerifyWebCallSecret` compares the header against `config('webcall.webhook_secret')` with `hash_equals`.
    401 on mismatch, 503 when no secret is configured.
 2. **Deduplicate** — a repeated `call_id` returns `{"status":"duplicate"}` without creating a second row.
-3. **Match the student** — primary key is the **call id**. When the student starts a call, the browser
-   registers the SIP Call-ID against them and their chosen subject (`call_sessions`), so the callback
-   resolves both from `call_id` alone. If the call id is unknown, it falls back to
-   `App\Support\PhoneNumber::findStudent()`: digits-only comparison, exact match first, then the last 9
-   digits. An unresolvable student *or subject* stores the transcript with status `unmatched` and logs a
-   warning rather than dropping it.
+3. **Match the student** — see the two-step reconciliation above: the Speaklar status lookup gives the
+   number, `App\Support\PhoneNumber::findStudent()` turns it into a student (digits-only comparison, exact
+   match first, then the last 9 digits, refusing ambiguous matches), and the open `call_sessions` row gives
+   the subject. An unresolvable student *or* subject stores the transcript with status `unmatched` and logs
+   a warning rather than dropping it.
 4. **Store** — one `exam_transcripts` row, keyed by student and subject.
 5. **Evaluate** — `EvaluateExamTranscript::dispatchAfterResponse()` runs once the provider has its 202, so
    the callback never waits on OpenAI. The model is asked for JSON `{marks_obtained, feedback}` using the

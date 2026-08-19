@@ -7,6 +7,7 @@ use App\Models\CallSession;
 use App\Models\ExamTranscript;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class CallSessionTest extends TestCase
@@ -22,6 +23,9 @@ class CallSessionTest extends TestCase
         parent::setUp();
 
         config(['webcall.webhook_secret' => self::SECRET]);
+
+        // An unattributed callback triggers a Speaklar lookup; keep it off the network.
+        Http::fake();
 
         $this->student = User::factory()->student()->create(['phone' => '01766666666']);
     }
@@ -194,10 +198,12 @@ class CallSessionTest extends TestCase
 
     public function test_a_call_id_with_no_session_and_no_phone_is_unmatched(): void
     {
+        // Accepted for a provider lookup first; the lookup finds nothing, so it settles
+        // as unmatched rather than being rejected outright.
         $this->postCallback([
             'call_id' => 'never-registered@speaklar',
             'transcript' => 'Examiner: Hello.',
-        ])->assertStatus(202)->assertJson(['status' => 'unmatched']);
+        ])->assertStatus(202)->assertJson(['status' => 'pending']);
 
         $this->assertSame(ExamTranscript::STATUS_UNMATCHED, ExamTranscript::first()->status);
         $this->assertDatabaseCount('results', 0);
