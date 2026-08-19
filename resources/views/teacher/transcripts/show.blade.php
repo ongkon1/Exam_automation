@@ -44,7 +44,11 @@
                         <dt class="col-5">Received</dt>
                         <dd class="col-7">{{ $transcript->created_at->toDayDateTimeString() }}</dd>
                         <dt class="col-5">Call ID</dt>
-                        <dd class="col-7">{{ $transcript->external_id ?: '—' }}</dd>
+                        <dd class="col-7 text-break">{{ $transcript->external_id ?: '—' }}</dd>
+                        @if ($transcript->call_result)
+                            <dt class="col-5">Call outcome</dt>
+                            <dd class="col-7">{{ ucfirst($transcript->call_result) }}</dd>
+                        @endif
                     </dl>
                 </div>
             </div>
@@ -81,6 +85,16 @@
                         <strong><i class="bi bi-robot me-1"></i>AI Feedback</strong>
                     </div>
                     <div class="card-body ai-feedback">{{ $transcript->result->ai_feedback }}</div>
+                </div>
+            @endif
+
+            @if ($transcript->summary)
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header bg-white">
+                        <strong><i class="bi bi-card-text me-1"></i>Call Summary</strong>
+                        <span class="text-muted small ms-2">from the voice provider</span>
+                    </div>
+                    <div class="card-body ai-feedback">{{ $transcript->summary }}</div>
                 </div>
             @endif
 

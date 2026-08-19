@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
-    'student_id', 'result_id', 'phone', 'subject', 'transcript',
+    'student_id', 'result_id', 'phone', 'subject', 'transcript', 'summary', 'call_result',
     'external_id', 'status', 'failure_reason', 'payload', 'evaluated_at',
 ])]
 class ExamTranscript extends Model

@@ -41,6 +41,8 @@ class WebCallTranscriptController extends Controller
             'phone' => PhoneNumber::normalize($data['phone'] ?? null) ?? $student?->phone ?? '',
             'subject' => $subject,
             'transcript' => $data['transcript'],
+            'summary' => $data['summary'] ?? null,
+            'call_result' => $data['result'] ?? null,
             'external_id' => $callId,
             'status' => $student && $subject !== ''
                 ? ExamTranscript::STATUS_PENDING

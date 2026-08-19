@@ -126,8 +126,14 @@ class OpenAiEvaluator
             'Marks available: '.$fullMarks,
         ];
 
-        return "Voice exam details:\n".implode("\n", $lines)
-            ."\n\nCall transcript:\n".$transcript->transcript;
+        $block = "Voice exam details:\n".implode("\n", $lines);
+
+        // The provider sends its own summary of the call; pass it along when present.
+        if (filled($transcript->summary)) {
+            $block .= "\n\nProvider call summary:\n".$transcript->summary;
+        }
+
+        return $block."\n\nCall transcript:\n".$transcript->transcript;
     }
 
     /**

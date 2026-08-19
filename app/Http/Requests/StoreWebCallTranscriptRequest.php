@@ -7,6 +7,13 @@ use Illuminate\Foundation\Http\FormRequest;
 class StoreWebCallTranscriptRequest extends FormRequest
 {
     /**
+     * The provider posts:
+     *   {order_id, call_id, port, carrier, result, summary, transcript}
+     *
+     * There is no phone number in that payload, so the call id is what ties a
+     * transcript back to a student. phone/subject remain accepted for callbacks
+     * that do carry them.
+     *
      * @return array<string, mixed>
      */
     public function rules(): array
@@ -14,6 +21,8 @@ class StoreWebCallTranscriptRequest extends FormRequest
         return [
             'transcript' => ['required', 'string'],
             'call_id' => ['nullable', 'string', 'max:255'],
+            'summary' => ['nullable', 'string'],
+            'result' => ['nullable', 'string', 'max:255'],
 
             // A known call id already tells us the student and the subject, so those
             // are only required when the callback has no call id to match on.

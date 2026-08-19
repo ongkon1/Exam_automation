@@ -19,12 +19,24 @@ POST /api/webhooks/webcall/transcript
 X-Webhook-Secret: <WEBCALL_WEBHOOK_SECRET>
 Content-Type: application/json
 
-{ "phone": "+8801766666666", "subject": "Physics", "transcript": "...", "call_id": "abc-123" }
+{
+  "order_id": null,
+  "call_id": "85a764409b8911f1be2d7e0a46f1ba4d",
+  "port": "770111",
+  "carrier": "0",
+  "result": "confirmed",
+  "summary": "### Call Summary\n\n...",
+  "transcript": "assistant: ...\nuser: ..."
+}
 ```
 
-`phone_number`, `transcript_text` and `id` are accepted as aliases for `phone`, `transcript` and `call_id`.
-Only `transcript` is always required: with a known `call_id` the student and subject are already on record,
-so `phone` and `subject` are required only when no `call_id` is sent.
+**The payload carries no phone number and no subject**, so the `call_id` registered when the student
+started the exam is what ties the transcript back to them. `summary` and `result` are stored on the
+transcript (`summary`, `call_result`) and the summary is passed to the AI alongside the transcript.
+
+Only `transcript` is always required. `phone` and `subject` are still accepted — and become required —
+when a callback arrives with no `call_id`. `phone_number`, `transcript_text` and `id` work as aliases for
+`phone`, `transcript` and `call_id`.
 
 **Call id capture.** Speaklar dials over SIP.js (`speaklar.min.js` is SIP.js exposed as `window.SIP`).
 `public/asset/js/voice-exam-embed.js` hooks `SIP.UA.prototype.invite`, reads the SIP Call-ID off the returned
