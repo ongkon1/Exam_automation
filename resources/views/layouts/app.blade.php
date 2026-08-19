@@ -54,6 +54,10 @@
                            href="{{ route('teacher.transcripts.index') }}">
                             <i class="bi bi-mic me-2"></i>Voice Transcripts
                         </a>
+                        <a class="nav-link {{ request()->routeIs('teacher.webhooks.*') ? 'active' : '' }}"
+                           href="{{ route('teacher.webhooks.index') }}">
+                            <i class="bi bi-broadcast me-2"></i>Webhook Log
+                        </a>
                         <a class="nav-link {{ request()->routeIs('teacher.settings.*') ? 'active' : '' }}"
                            href="{{ route('teacher.settings.edit') }}">
                             <i class="bi bi-gear me-2"></i>Settings

@@ -11,6 +11,7 @@ use App\Http\Controllers\Teacher\ResultController;
 use App\Http\Controllers\Teacher\SettingsController;
 use App\Http\Controllers\Teacher\StudentController;
 use App\Http\Controllers\Teacher\TranscriptController;
+use App\Http\Controllers\Teacher\WebhookLogController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -41,6 +42,9 @@ Route::middleware(['auth', 'role:teacher'])
         Route::post('results/{result}/evaluate', EvaluationController::class)->name('results.evaluate');
         Route::get('transcripts', [TranscriptController::class, 'index'])->name('transcripts.index');
         Route::get('transcripts/{transcript}', [TranscriptController::class, 'show'])->name('transcripts.show');
+        Route::get('webhooks', [WebhookLogController::class, 'index'])->name('webhooks.index');
+        Route::get('webhooks/{webhook}', [WebhookLogController::class, 'show'])->name('webhooks.show');
+        Route::delete('webhooks', [WebhookLogController::class, 'destroy'])->name('webhooks.destroy');
         Route::get('settings', [SettingsController::class, 'edit'])->name('settings.edit');
         Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
     });

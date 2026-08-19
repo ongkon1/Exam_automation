@@ -33,8 +33,9 @@ class WebCallTranscriptController extends Controller
             ]);
         }
 
-        // The student registered this call id when they started the exam, which tells us
-        // both who they are and which subject they picked. Phone matching is the fallback.
+        // Speaklar does not give the browser its call id, so this normally misses; it only
+        // hits if some future flow registers one up front. When it misses, the call id is
+        // handed to the job, which looks the call up on Speaklar to identify the student.
         $session = $callId ? CallSession::where('call_id', $callId)->first() : null;
 
         $student = $session?->student ?? PhoneNumber::findStudent($data['phone'] ?? null);

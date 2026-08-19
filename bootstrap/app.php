@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureRole::class,
             'webcall.secret' => \App\Http\Middleware\VerifyWebCallSecret::class,
+            'webhook.log' => \App\Http\Middleware\LogWebhookRequest::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
