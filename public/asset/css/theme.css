@@ -1,0 +1,367 @@
+/*
+ * Theme adapted from powerinai.com: their pink -> violet neon accent on light surfaces.
+ *
+ * Accent tokens are taken straight from that site's :root:
+ *   --accent #ff3c7e  --accent2 #6c63ff  --primary #18192b  --border-radius 18px
+ * Their #e5e7eb / #cbd5e1 greys carry the light surfaces, and body text uses their
+ * dark --primary so the palette stays recognisable.
+ */
+
+:root {
+    --pia-bg: #f5f6fa;
+    --pia-surface: #ffffff;
+    --pia-surface-alt: #f0f1f7;
+    --pia-border: #e5e7eb;
+    --pia-accent: #ff3c7e;
+    --pia-accent-2: #6c63ff;
+    --pia-violet: #7c3aed;
+    --pia-text: #18192b;
+    --pia-muted: #5f6480;
+    --pia-radius: 18px;
+    --pia-radius-sm: 12px;
+    --pia-transition: 0.3s all cubic-bezier(0.4, 0, 0.2, 1);
+    --pia-gradient: linear-gradient(90deg, var(--pia-accent), var(--pia-accent-2));
+    --pia-gradient-hover: linear-gradient(90deg, var(--pia-accent-2), var(--pia-accent));
+    --pia-glow: 0 6px 18px rgba(108, 99, 255, 0.28);
+}
+
+[data-bs-theme="light"] {
+    --bs-body-bg: var(--pia-bg);
+    --bs-body-color: var(--pia-text);
+    --bs-emphasis-color: var(--pia-text);
+    --bs-heading-color: var(--pia-text);
+    --bs-secondary-color: var(--pia-muted);
+    --bs-border-color: var(--pia-border);
+    --bs-border-radius: var(--pia-radius-sm);
+    --bs-link-color: var(--pia-accent-2);
+    --bs-link-hover-color: var(--pia-accent);
+    --bs-primary: var(--pia-accent-2);
+    --bs-primary-rgb: 108, 99, 255;
+}
+
+body {
+    background: var(--pia-bg);
+    color: var(--pia-text);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+        Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+/* Existing markup leans on these utilities for panel surfaces; route them through
+   the theme tokens rather than editing every view. */
+.bg-white,
+.bg-dark {
+    background-color: var(--pia-surface) !important;
+}
+
+.bg-light {
+    background-color: var(--pia-surface-alt) !important;
+}
+
+.text-muted {
+    color: var(--pia-muted) !important;
+}
+
+/* ---------------------------------------------------------------- chrome --- */
+
+.navbar {
+    background: var(--pia-surface) !important;
+    border-bottom: 1px solid var(--pia-border);
+    box-shadow: 0 1px 3px rgba(24, 25, 43, 0.06);
+    padding: 14px 0;
+}
+
+.navbar-brand {
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--pia-text) !important;
+}
+
+.navbar-brand .bi {
+    color: var(--pia-accent);
+}
+
+.sidebar {
+    background-color: var(--pia-surface) !important;
+    border-right: 1px solid var(--pia-border) !important;
+}
+
+.sidebar .nav-link {
+    color: var(--pia-muted) !important;
+    border-radius: var(--pia-radius-sm);
+    margin-bottom: 4px;
+    transition: var(--pia-transition);
+}
+
+.sidebar .nav-link:hover {
+    background-color: rgba(108, 99, 255, 0.1) !important;
+    color: var(--pia-accent-2) !important;
+}
+
+.sidebar .nav-link.active {
+    background: var(--pia-gradient) !important;
+    color: #fff !important;
+    box-shadow: var(--pia-glow);
+}
+
+/* --------------------------------------------------------------- surfaces --- */
+
+.card {
+    background-color: var(--pia-surface);
+    border: 1px solid var(--pia-border);
+    border-radius: var(--pia-radius);
+    box-shadow: 0 2px 10px rgba(24, 25, 43, 0.05);
+    color: var(--pia-text);
+    transition: var(--pia-transition);
+}
+
+.card-header,
+.card-footer {
+    background-color: transparent !important;
+    border-color: var(--pia-border);
+    color: var(--pia-text);
+}
+
+.card-header {
+    border-bottom: 1px solid var(--pia-border);
+}
+
+.card-footer {
+    border-top: 1px solid var(--pia-border);
+}
+
+/* ----------------------------------------------------------------- tables --- */
+
+.table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--pia-text);
+    --bs-table-border-color: var(--pia-border);
+    --bs-table-hover-bg: rgba(108, 99, 255, 0.07);
+    --bs-table-hover-color: var(--pia-text);
+    margin-bottom: 0;
+}
+
+.table > thead.table-light th,
+.table .table-light > th,
+.table .table-light > td {
+    background-color: var(--pia-surface-alt) !important;
+    color: var(--pia-muted) !important;
+    border-color: var(--pia-border) !important;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+}
+
+/* ------------------------------------------------------------------ forms --- */
+
+.form-control,
+.form-select {
+    background-color: var(--pia-surface);
+    border: 1px solid var(--pia-border);
+    border-radius: var(--pia-radius-sm);
+    color: var(--pia-text);
+    transition: var(--pia-transition);
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: var(--pia-surface);
+    border-color: var(--pia-accent-2);
+    box-shadow: 0 0 0 0.2rem rgba(108, 99, 255, 0.18);
+    color: var(--pia-text);
+}
+
+.form-control::placeholder {
+    color: rgba(95, 100, 128, 0.6);
+}
+
+.form-control:disabled,
+.form-control[readonly] {
+    background-color: var(--pia-surface-alt);
+    color: var(--pia-muted);
+}
+
+.form-label {
+    color: var(--pia-text);
+    font-weight: 500;
+}
+
+.form-text {
+    color: var(--pia-muted) !important;
+}
+
+.form-check-input:checked {
+    background-color: var(--pia-accent-2);
+    border-color: var(--pia-accent-2);
+}
+
+/* ---------------------------------------------------------------- buttons --- */
+
+.btn {
+    border-radius: var(--pia-radius-sm);
+    transition: var(--pia-transition);
+}
+
+.btn-primary,
+.btn-success {
+    background: var(--pia-gradient);
+    border: none;
+    color: #fff;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    box-shadow: var(--pia-glow);
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-success:hover,
+.btn-success:focus {
+    background: var(--pia-gradient-hover);
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(255, 60, 126, 0.3);
+}
+
+.btn-outline-primary {
+    border-color: var(--pia-accent-2);
+    color: var(--pia-accent-2);
+}
+
+.btn-outline-primary:hover {
+    background: var(--pia-accent-2);
+    border-color: var(--pia-accent-2);
+    color: #fff;
+}
+
+.btn-outline-secondary {
+    border-color: var(--pia-border);
+    color: var(--pia-muted);
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--pia-surface-alt);
+    border-color: var(--pia-muted);
+    color: var(--pia-text);
+}
+
+.btn-outline-success {
+    border-color: var(--pia-accent);
+    color: var(--pia-accent);
+}
+
+.btn-outline-success:hover {
+    background: var(--pia-accent);
+    border-color: var(--pia-accent);
+    color: #fff;
+}
+
+.btn-outline-light {
+    border-color: var(--pia-border);
+    color: var(--pia-muted);
+}
+
+.btn-outline-light:hover {
+    background-color: var(--pia-surface-alt);
+    border-color: var(--pia-muted);
+    color: var(--pia-text);
+}
+
+.btn-link {
+    color: var(--pia-muted);
+}
+
+.btn-link:hover {
+    color: var(--pia-accent);
+}
+
+/* ------------------------------------------------------- alerts & badges --- */
+
+.alert {
+    border-radius: var(--pia-radius-sm);
+    border-width: 1px;
+}
+
+.alert-success {
+    background-color: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.35);
+    color: #15803d;
+}
+
+.alert-danger {
+    background-color: rgba(255, 60, 126, 0.1);
+    border-color: rgba(255, 60, 126, 0.35);
+    color: #be123c;
+}
+
+.alert-warning {
+    background-color: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #b45309;
+}
+
+.alert-link {
+    color: inherit;
+    font-weight: 700;
+}
+
+.badge.bg-secondary {
+    background-color: var(--pia-surface-alt) !important;
+    color: var(--pia-muted);
+}
+
+.badge.bg-primary {
+    background: var(--pia-gradient) !important;
+}
+
+/* ------------------------------------------------------------ pagination --- */
+
+.page-link {
+    background-color: var(--pia-surface);
+    border-color: var(--pia-border);
+    color: var(--pia-muted);
+}
+
+.page-link:hover {
+    background-color: rgba(108, 99, 255, 0.1);
+    border-color: var(--pia-accent-2);
+    color: var(--pia-accent-2);
+}
+
+.page-item.active .page-link {
+    background: var(--pia-gradient);
+    border-color: transparent;
+    color: #fff;
+}
+
+.page-item.disabled .page-link {
+    background-color: var(--pia-surface-alt);
+    border-color: var(--pia-border);
+    color: rgba(95, 100, 128, 0.5);
+}
+
+/* ------------------------------------------------------------------ misc --- */
+
+.progress {
+    background-color: var(--pia-surface-alt);
+}
+
+hr {
+    border-color: var(--pia-border);
+    opacity: 1;
+}
+
+dt {
+    color: var(--pia-muted);
+    font-weight: 500;
+}
+
+/* Pre-wrapped AI feedback blocks. */
+.ai-feedback {
+    white-space: pre-wrap;
+}
+
+/* Headline treatment borrowed from the source site's gradient text. */
+.gradient-text {
+    background: linear-gradient(270deg, #4f56ff, #ff4980);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-weight: 700;
+}
