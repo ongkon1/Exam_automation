@@ -21,6 +21,11 @@ class WebCallTranscriptController extends Controller
      */
     public function __invoke(StoreWebCallTranscriptRequest $request): JsonResponse
     {
+        Log::info('Voice exam transcript callback received.', [
+            'call_id' => $request->input('call_id'),
+            'result' => $request->input('result'),
+        ]);
+
         $data = $request->validated();
         $callId = $data['call_id'];
 

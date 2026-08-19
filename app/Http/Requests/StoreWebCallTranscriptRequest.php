@@ -18,7 +18,7 @@ class StoreWebCallTranscriptRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'call_id' => ['required', 'string', 'max:255'],
+            'call_id' => ['nullable', 'string', 'max:255'],
             'transcript' => ['nullable', 'string'],
             'summary' => ['nullable', 'string'],
             'result' => ['nullable', 'string', 'max:255'],
