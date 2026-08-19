@@ -54,7 +54,7 @@ class WebhookLogTest extends TestCase
     public function test_a_call_rejected_by_validation_is_logged(): void
     {
         $this->withHeaders([VerifyWebCallSecret::HEADER => self::SECRET])
-            ->postJson(route('webhooks.webcall.transcript'), ['nonsense' => true])
+            ->postJson(route('webhooks.webcall.transcript'), ['transcript' => ['nonsense']])
             ->assertStatus(422);
 
         $entry = WebhookRequest::sole();
@@ -159,12 +159,14 @@ class WebhookLogTest extends TestCase
     {
         config(['webcall.webhook_secret' => null]);
 
-        $this->postJson(route('webhooks.webcall.transcript'), ['transcript' => 'open-marker'])
-            ->assertStatus(422);
+        $this->postJson(route('webhooks.webcall.transcript'), [
+            'call_id' => 'open-call-1',
+            'transcript' => 'open-marker',
+        ])->assertStatus(202);
 
         $entry = WebhookRequest::sole();
 
-        $this->assertSame(422, $entry->status_code);
+        $this->assertSame(202, $entry->status_code);
         $this->assertStringContainsString('open-marker', $entry->body);
     }
 

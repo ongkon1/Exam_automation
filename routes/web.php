@@ -6,6 +6,7 @@ use App\Http\Controllers\Student\ProfileController;
 use App\Http\Controllers\Student\CallSessionController;
 use App\Http\Controllers\Student\ResultController as StudentResultController;
 use App\Http\Controllers\Student\VoiceExamController;
+use App\Http\Controllers\Teacher\DashboardController as TeacherDashboardController;
 use App\Http\Controllers\Teacher\EvaluationController;
 use App\Http\Controllers\Teacher\ResultController;
 use App\Http\Controllers\Teacher\SettingsController;
@@ -37,6 +38,7 @@ Route::middleware(['auth', 'role:teacher'])
     ->prefix('teacher')
     ->name('teacher.')
     ->group(function () {
+        Route::get('dashboard', TeacherDashboardController::class)->name('dashboard');
         Route::resource('students', StudentController::class);
         Route::resource('results', ResultController::class)->except('show');
         Route::post('results/{result}/evaluate', EvaluationController::class)->name('results.evaluate');

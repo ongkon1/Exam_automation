@@ -63,6 +63,16 @@ class User extends Authenticatable
     }
 
     /**
+     * The student's most recent result, for dashboard listings.
+     *
+     * @return HasOne<Result, $this>
+     */
+    public function latestResult(): HasOne
+    {
+        return $this->hasOne(Result::class, 'student_id')->latestOfMany();
+    }
+
+    /**
      * The voice-exam transcripts belonging to this user (students only).
      *
      * @return HasMany<ExamTranscript, $this>
@@ -109,6 +119,17 @@ class User extends Authenticatable
      */
     public function homeRoute(): string
     {
-        return $this->isTeacher() ? 'teacher.students.index' : 'student.dashboard';
+        return $this->isTeacher() ? 'teacher.dashboard' : 'student.dashboard';
+    }
+
+    /**
+     * Initials for avatar chips, e.g. "Nusrat Jahan" -> "NJ".
+     */
+    public function initials(): string
+    {
+        $words = preg_split('/\s+/', trim($this->name)) ?: [];
+        $letters = array_map(fn ($word) => mb_strtoupper(mb_substr($word, 0, 1)), $words);
+
+        return mb_substr(implode('', array_slice($letters, 0, 2)), 0, 2) ?: '?';
     }
 }

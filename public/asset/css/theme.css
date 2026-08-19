@@ -357,6 +357,328 @@ dt {
     white-space: pre-wrap;
 }
 
+/* ------------------------------------------------------------- chrome bits --- */
+
+.user-chip .btn {
+    background: transparent;
+    border: 1px solid var(--pia-border);
+    border-radius: 999px;
+    color: var(--pia-text);
+    padding: 5px 10px 5px 14px;
+}
+
+.user-chip .btn::after {
+    margin-left: 2px;
+    color: var(--pia-muted);
+}
+
+.role-chip {
+    background: rgba(108, 99, 255, 0.12);
+    border-radius: 999px;
+    color: var(--pia-accent-2);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    padding: 3px 8px;
+}
+
+.avatar {
+    align-items: center;
+    background: var(--pia-gradient);
+    border-radius: 50%;
+    color: #fff;
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 0.78rem;
+    font-weight: 700;
+    height: 38px;
+    justify-content: center;
+    letter-spacing: 0.3px;
+    width: 38px;
+}
+
+.avatar-sm {
+    font-size: 0.7rem;
+    height: 30px;
+    width: 30px;
+}
+
+/* --------------------------------------------------------------- dashboard --- */
+
+.range-picker {
+    align-items: center;
+    background: var(--pia-surface);
+    border: 1px solid var(--pia-border);
+    border-radius: var(--pia-radius-sm);
+    color: var(--pia-text);
+    display: inline-flex;
+    gap: 8px;
+    padding: 8px 12px;
+    position: relative;
+}
+
+.range-picker i {
+    color: var(--pia-muted);
+}
+
+/* The native select sits invisibly over the styled label so it stays keyboard-usable. */
+.range-picker .form-select {
+    border: 0;
+    cursor: pointer;
+    inset: 0;
+    opacity: 0;
+    position: absolute;
+    width: 100%;
+}
+
+.stat-card {
+    border: 1px solid var(--pia-border);
+    overflow: hidden;
+}
+
+.stat-card--violet {
+    background: linear-gradient(120deg, rgba(108, 99, 255, 0.07), transparent 60%);
+}
+
+.stat-card--green {
+    background: linear-gradient(120deg, rgba(34, 197, 94, 0.08), transparent 60%);
+}
+
+.stat-icon {
+    align-items: center;
+    border-radius: 18px;
+    display: flex;
+    flex: 0 0 auto;
+    font-size: 1.5rem;
+    height: 62px;
+    justify-content: center;
+    width: 62px;
+}
+
+.stat-card--violet .stat-icon {
+    background: rgba(108, 99, 255, 0.14);
+    color: var(--pia-accent-2);
+}
+
+.stat-card--green .stat-icon {
+    background: rgba(34, 197, 94, 0.14);
+    color: #16a34a;
+}
+
+.stat-label {
+    color: var(--pia-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.stat-value {
+    font-size: 2.2rem;
+    font-weight: 700;
+    line-height: 1.1;
+    margin: 2px 0 6px;
+}
+
+.trend {
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 2px 9px;
+}
+
+.trend--up {
+    background: rgba(34, 197, 94, 0.14);
+    color: #15803d;
+}
+
+.trend--down {
+    background: rgba(239, 68, 68, 0.14);
+    color: #b91c1c;
+}
+
+.sparkline {
+    height: 58px;
+    width: 240px;
+}
+
+.chip {
+    background: var(--pia-surface-alt);
+    border-radius: 999px;
+    color: var(--pia-muted);
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 4px 12px;
+}
+
+/* Donut ------------------------------------------------------------------- */
+
+.donut {
+    height: 200px;
+    position: relative;
+    width: 200px;
+}
+
+.donut svg {
+    height: 100%;
+    width: 100%;
+}
+
+.donut circle {
+    transition: var(--pia-transition);
+}
+
+.donut-centre {
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    pointer-events: none;
+}
+
+.donut-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.donut-label {
+    color: var(--pia-muted);
+    font-size: 0.82rem;
+}
+
+.legend {
+    list-style: none;
+    margin: 0;
+    min-width: 240px;
+    padding: 0;
+}
+
+.legend li {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    padding: 9px 0;
+}
+
+.legend li + li {
+    border-top: 1px solid var(--pia-border);
+}
+
+.legend-dot {
+    border-radius: 50%;
+    flex: 0 0 auto;
+    height: 10px;
+    width: 10px;
+}
+
+.legend-name {
+    color: var(--pia-muted);
+    flex-grow: 1;
+    font-size: 0.88rem;
+}
+
+.legend-value {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Bar chart --------------------------------------------------------------- */
+
+.bar-chart {
+    display: flex;
+    gap: 12px;
+    height: 250px;
+}
+
+.bar-axis {
+    color: var(--pia-muted);
+    display: flex;
+    flex-direction: column;
+    font-size: 0.75rem;
+    justify-content: space-between;
+    padding-bottom: 34px;
+    text-align: right;
+}
+
+.bar-axis-title {
+    color: var(--pia-muted);
+    font-size: 0.75rem;
+}
+
+.bars {
+    align-items: flex-end;
+    border-bottom: 1px solid var(--pia-border);
+    display: flex;
+    flex-grow: 1;
+    gap: 10px;
+    padding-bottom: 34px;
+    position: relative;
+}
+
+.bar-col {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    height: 100%;
+    justify-content: flex-end;
+    position: relative;
+}
+
+.bar {
+    border-radius: 8px 8px 0 0;
+    transition: var(--pia-transition);
+}
+
+.bar:hover {
+    filter: brightness(1.08);
+}
+
+.bar-count {
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding-bottom: 4px;
+    text-align: center;
+}
+
+.bar-label {
+    bottom: -26px;
+    color: var(--pia-muted);
+    font-size: 0.75rem;
+    position: absolute;
+    text-align: center;
+    width: 100%;
+}
+
+/* Table extras ------------------------------------------------------------ */
+
+.pill {
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 4px 11px;
+}
+
+.pill--success { background: rgba(34, 197, 94, 0.14); color: #15803d; }
+.pill--primary { background: rgba(59, 130, 246, 0.14); color: #1d4ed8; }
+.pill--warning { background: rgba(245, 158, 11, 0.16); color: #b45309; }
+.pill--danger  { background: rgba(239, 68, 68, 0.14);  color: #b91c1c; }
+
+.meter {
+    background: var(--pia-surface-alt);
+    border-radius: 999px;
+    flex-grow: 1;
+    height: 8px;
+    overflow: hidden;
+}
+
+.meter span {
+    background: var(--pia-gradient);
+    border-radius: 999px;
+    display: block;
+    height: 100%;
+}
+
 /* Headline treatment borrowed from the source site's gradient text. */
 .gradient-text {
     background: linear-gradient(270deg, #4f56ff, #ff4980);

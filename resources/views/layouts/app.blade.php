@@ -20,17 +20,41 @@
             <i class="bi bi-mortarboard-fill me-1"></i>{{ config('app.name') }}
         </a>
         @auth
-            <div class="d-flex align-items-center gap-3">
-                <span class="text-muted small">
-                    {{ auth()->user()->name }}
-                    <span class="badge bg-secondary text-uppercase">{{ auth()->user()->role }}</span>
-                </span>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-box-arrow-right me-1"></i>Logout
-                    </button>
-                </form>
+            <div class="dropdown user-chip">
+                <button class="btn dropdown-toggle d-flex align-items-center gap-2" data-bs-toggle="dropdown"
+                        aria-expanded="false">
+                    <span class="d-none d-sm-inline fw-medium">{{ auth()->user()->name }}</span>
+                    <span class="role-chip text-uppercase">{{ auth()->user()->role }}</span>
+                    <span class="avatar avatar-sm">{{ auth()->user()->initials() }}</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow">
+                    <li class="dropdown-header">
+                        <div class="fw-semibold">{{ auth()->user()->name }}</div>
+                        <div class="small text-muted">{{ auth()->user()->email }}</div>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    @if (auth()->user()->isTeacher())
+                        <li>
+                            <a class="dropdown-item" href="{{ route('teacher.settings.edit') }}">
+                                <i class="bi bi-gear me-2"></i>Settings
+                            </a>
+                        </li>
+                    @else
+                        <li>
+                            <a class="dropdown-item" href="{{ route('student.profile') }}">
+                                <i class="bi bi-person-badge me-2"></i>My Profile
+                            </a>
+                        </li>
+                    @endif
+                    <li>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="dropdown-item text-danger">
+                                <i class="bi bi-box-arrow-right me-2"></i>Logout
+                            </button>
+                        </form>
+                    </li>
+                </ul>
             </div>
         @endauth
     </div>
@@ -42,6 +66,10 @@
             <aside class="col-lg-2 col-md-3 sidebar p-3">
                 <nav class="nav flex-column">
                     @if (auth()->user()->isTeacher())
+                        <a class="nav-link {{ request()->routeIs('teacher.dashboard') ? 'active' : '' }}"
+                           href="{{ route('teacher.dashboard') }}">
+                            <i class="bi bi-grid-1x2 me-2"></i>Dashboard
+                        </a>
                         <a class="nav-link {{ request()->routeIs('teacher.students.*') ? 'active' : '' }}"
                            href="{{ route('teacher.students.index') }}">
                             <i class="bi bi-people me-2"></i>Students
@@ -85,8 +113,13 @@
         @endauth
 
         <main class="@auth col-lg-10 col-md-9 @else col-12 @endauth py-4 px-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h1 class="h3 mb-0">@yield('heading', 'Dashboard')</h1>
+            <div class="d-flex justify-content-between align-items-start gap-3 mb-4 flex-wrap">
+                <div>
+                    <h1 class="h3 mb-1">@yield('heading', 'Dashboard')</h1>
+                    @hasSection('subheading')
+                        <p class="text-muted mb-0">@yield('subheading')</p>
+                    @endif
+                </div>
                 @yield('actions')
             </div>
 

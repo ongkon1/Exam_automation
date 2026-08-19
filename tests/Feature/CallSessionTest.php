@@ -210,11 +210,16 @@ class CallSessionTest extends TestCase
         $this->assertDatabaseCount('results', 0);
     }
 
-    public function test_a_callback_without_a_call_id_is_rejected(): void
+    public function test_a_callback_without_a_call_id_cannot_be_attributed(): void
     {
+        // Even with a real student's number in the body, there is nothing to verify
+        // against, so no result is created.
         $this->postCallback(['transcript' => 'Examiner: Hello.', 'phone' => '01766666666'])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors('call_id');
+            ->assertStatus(202)
+            ->assertJson(['status' => 'unmatched']);
+
+        $this->assertNull(ExamTranscript::sole()->student_id);
+        $this->assertDatabaseCount('results', 0);
     }
 
     public function test_the_voice_exam_page_exposes_the_session_endpoints(): void

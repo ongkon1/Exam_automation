@@ -66,11 +66,22 @@ class WebCallTranscriptWebhookTest extends TestCase
         $this->assertDatabaseHas('exam_transcripts', ['external_id' => self::CALL_ID]);
     }
 
-    public function test_the_call_id_is_the_only_required_field(): void
+    public function test_a_callback_with_no_call_id_can_never_be_attributed(): void
     {
         $this->postCallback(['transcript' => 'Examiner: Hello.', 'summary' => 'x'])
+            ->assertStatus(202)
+            ->assertJson(['status' => 'unmatched']);
+
+        // Kept for review, but there is nothing to look the call up by.
+        $this->assertSame(ExamTranscript::STATUS_UNMATCHED, ExamTranscript::sole()->status);
+        $this->assertDatabaseCount('results', 0);
+    }
+
+    public function test_a_malformed_field_is_rejected(): void
+    {
+        $this->postCallback(['call_id' => self::CALL_ID, 'transcript' => ['not', 'a', 'string']])
             ->assertStatus(422)
-            ->assertJsonValidationErrors('call_id');
+            ->assertJsonValidationErrors('transcript');
 
         $this->assertDatabaseCount('exam_transcripts', 0);
     }

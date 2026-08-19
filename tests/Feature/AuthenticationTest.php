@@ -15,14 +15,14 @@ class AuthenticationTest extends TestCase
         $this->get('/login')->assertOk()->assertSee('Sign in to continue');
     }
 
-    public function test_teacher_is_redirected_to_the_students_list_after_login(): void
+    public function test_teacher_is_redirected_to_their_dashboard_after_login(): void
     {
         $teacher = User::factory()->teacher()->create();
 
         $this->post('/login', [
             'email' => $teacher->email,
             'password' => 'password',
-        ])->assertRedirect(route('teacher.students.index'));
+        ])->assertRedirect(route('teacher.dashboard'));
 
         $this->assertAuthenticatedAs($teacher);
     }
