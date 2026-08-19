@@ -84,8 +84,8 @@
 @endpush
 
 @push('scripts')
-    <script src="{{ asset('asset/js/webcall-bd%201.js') }}" defer></script>
-    <script src="{{ asset('asset/js/voice-exam-embed.js') }}" defer></script>
+    <script src="{{ asset('asset/js/webcall-bd%201.js') }}?v=1.0.0" defer></script>
+    <script src="{{ asset('asset/js/voice-exam-embed.js') }}?v=1.0.0" defer></script>
 @endpush
 
 @section('content')
