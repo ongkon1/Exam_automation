@@ -79,7 +79,7 @@ class OpenAiEvaluator
     {
         return $this->request([
             ['role' => 'system', 'content' => $settings->evaluation_prompt],
-            ['role' => 'user', 'content' => $transcript->transcript],
+            ['role' => 'user', 'content' => $transcript->contentForAi()],
         ]);
     }
 
@@ -144,7 +144,7 @@ class OpenAiEvaluator
         ];
 
         return "Voice exam details:\n".implode("\n", $lines)
-            ."\n\nCall transcript:\n".$transcript->transcript;
+            ."\n\nCall transcript:\n".$transcript->contentForAi();
     }
 
     /**

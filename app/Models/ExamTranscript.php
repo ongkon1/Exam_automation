@@ -69,6 +69,29 @@ class ExamTranscript extends Model
         };
     }
 
+    /**
+     * What gets sent to OpenAI.
+     *
+     * Normally the transcript. When the callback carried none — and the provider lookup
+     * could not supply one either — the whole stored callback payload is sent instead,
+     * so the model has something to work from rather than nothing.
+     */
+    public function contentForAi(): string
+    {
+        if (filled($this->transcript)) {
+            return $this->transcript;
+        }
+
+        if (blank($this->payload)) {
+            return '';
+        }
+
+        return "No transcript was supplied. Full callback payload:\n".json_encode(
+            $this->payload,
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
+    }
+
     public function markFailed(string $reason): void
     {
         $this->update([

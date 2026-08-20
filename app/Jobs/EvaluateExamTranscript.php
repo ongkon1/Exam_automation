@@ -47,8 +47,10 @@ class EvaluateExamTranscript
             return;
         }
 
-        if (blank($transcript->transcript)) {
-            $transcript->markFailed('Speaklar returned no transcript for this call.');
+        // A missing transcript is no longer fatal — the whole callback payload is sent
+        // instead. Only a completely empty record has nothing to work from.
+        if (blank($transcript->contentForAi())) {
+            $transcript->markFailed('The callback contained neither a transcript nor any payload to evaluate.');
 
             return;
         }
@@ -115,9 +117,15 @@ class EvaluateExamTranscript
         TeacherSetting $settings,
         OpenAiEvaluator $evaluator,
     ): void {
-        if (blank($settings->evaluation_prompt) || blank($transcript->transcript)) {
+        if (blank($settings->evaluation_prompt) || blank($transcript->contentForAi())) {
             return;
         }
+
+        Log::info('Summarising voice exam transcript.', [
+            'transcript_id' => $transcript->id,
+            'source' => filled($transcript->transcript) ? 'transcript' : 'callback payload',
+            'characters' => mb_strlen($transcript->contentForAi()),
+        ]);
 
         try {
             $transcript->update(['summary' => $evaluator->summarise($transcript, $settings)]);

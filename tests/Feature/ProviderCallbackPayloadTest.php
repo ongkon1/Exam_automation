@@ -190,6 +190,67 @@ class ProviderCallbackPayloadTest extends TestCase
         });
     }
 
+    public function test_the_whole_callback_payload_is_sent_when_no_transcript_arrives(): void
+    {
+        Http::fake([
+            // A blank transcript makes the job ask Speaklar for one; it has none either,
+            // so the stored payload is the last resort.
+            'app.speaklar.com/*' => Http::response(['body' => ['calls' => []]]),
+            'api.openai.com/*' => Http::sequence()
+                ->push(['choices' => [['message' => ['content' => 'Summary from payload.']]]])
+                ->push(['choices' => [['message' => [
+                    'content' => json_encode(['marks_obtained' => 40, 'feedback' => 'Limited detail.']),
+                ]]]]),
+        ]);
+
+        CallSession::factory()->create([
+            'student_id' => $this->student->id,
+            'call_id' => self::CALL_ID,
+            'subject' => 'Physics',
+        ]);
+
+        // Callback with no transcript at all.
+        $this->postCallback([
+            'call_id' => self::CALL_ID,
+            'transcript' => null,
+            'port' => 'PORT-MARKER-770111',
+            'result' => 'confirmed',
+        ]);
+
+        Http::assertSent(function ($request) {
+            if (! str_contains($request->url(), 'openai.com')) {
+                return false;
+            }
+
+            $content = $request->data()['messages'][1]['content'];
+
+            return str_contains($content, 'No transcript was supplied')
+                && str_contains($content, 'PORT-MARKER-770111');
+        });
+
+        $this->assertSame(ExamTranscript::STATUS_EVALUATED, ExamTranscript::first()->status);
+    }
+
+    public function test_a_transcript_is_preferred_over_the_payload(): void
+    {
+        $this->fakeOpenAiPair();
+
+        CallSession::factory()->create([
+            'student_id' => $this->student->id,
+            'call_id' => self::CALL_ID,
+            'subject' => 'Physics',
+        ]);
+
+        $this->postCallback($this->payload(['port' => 'PORT-MARKER-770111']));
+
+        Http::assertSent(function ($request) {
+            $content = $request->data()['messages'][1]['content'];
+
+            return str_contains($content, 'প্রথম সূত্রটি বলুন')
+                && ! str_contains($content, 'No transcript was supplied');
+        });
+    }
+
     public function test_the_provider_summary_is_never_sent_to_the_ai(): void
     {
         $this->fakeOpenAiPair();
