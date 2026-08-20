@@ -29,8 +29,8 @@ class UpdateTeacherSettingsRequest extends FormRequest
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->user()->id)],
             'phone' => ['nullable', 'string', 'max:30', Rule::unique('users', 'phone')->ignore($this->user()->id)],
             'password' => ['nullable', 'confirmed', Password::min(8)],
-            'system_prompt' => ['nullable', 'string', 'max:5000'],
-            'evaluation_prompt' => ['nullable', 'string', 'max:5000'],
+            'system_prompt' => ['nullable', 'string', 'max:20000'],
+            'evaluation_prompt' => ['nullable', 'string', 'max:20000'],
         ];
     }
 }

@@ -61,6 +61,10 @@ class EvaluateExamTranscript
             return;
         }
 
+        // Written up from the transcript before scoring, so a summary survives even if
+        // the scoring call afterwards fails.
+        $this->summarise($transcript, $settings, $evaluator);
+
         try {
             $evaluation = $evaluator->evaluateTranscript($transcript, $settings);
         } catch (Throwable $e) {
@@ -97,6 +101,34 @@ class EvaluateExamTranscript
             'transcript_id' => $transcript->id,
             'result_id' => $result->id,
         ]);
+    }
+
+    /**
+     * Summarise the call transcript with OpenAI, using the teacher's evaluation prompt
+     * as the system prompt.
+     *
+     * A failure here is logged but not fatal — the scoring step is the important one, so
+     * a missing summary must not cost the student their result.
+     */
+    protected function summarise(
+        ExamTranscript $transcript,
+        TeacherSetting $settings,
+        OpenAiEvaluator $evaluator,
+    ): void {
+        if (blank($settings->evaluation_prompt) || blank($transcript->transcript)) {
+            return;
+        }
+
+        try {
+            $transcript->update(['summary' => $evaluator->summarise($transcript, $settings)]);
+        } catch (Throwable $e) {
+            report($e);
+
+            Log::warning('Could not summarise voice exam transcript.', [
+                'transcript_id' => $transcript->id,
+                'reason' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

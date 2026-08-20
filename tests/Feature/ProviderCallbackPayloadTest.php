@@ -75,13 +75,27 @@ class ProviderCallbackPayloadTest extends TestCase
             ->postJson(route('webhooks.webcall.transcript'), $payload);
     }
 
+    /**
+     * Two OpenAI calls happen in order: the summary first, then the score.
+     */
+    protected function fakeOpenAiPair(): void
+    {
+        Http::fake([
+            'api.openai.com/*' => Http::sequence()
+                ->push(['choices' => [['message' => [
+                    'content' => 'The student answered three questions on Newton\'s laws.',
+                ]]]])
+                ->push(['choices' => [['message' => [
+                    'content' => json_encode([
+                        'marks_obtained' => 71, 'feedback' => 'Good recall of the first law.',
+                    ]),
+                ]]]]),
+        ]);
+    }
+
     public function test_the_provider_payload_is_accepted_and_stored(): void
     {
-        Http::fake(['api.openai.com/*' => Http::response([
-            'choices' => [['message' => ['content' => json_encode([
-                'marks_obtained' => 71, 'feedback' => 'Good recall of the first law.',
-            ])]]],
-        ])]);
+        $this->fakeOpenAiPair();
 
         CallSession::factory()->create([
             'student_id' => $this->student->id,
@@ -98,7 +112,8 @@ class ProviderCallbackPayloadTest extends TestCase
         $this->assertSame(self::CALL_ID, $transcript->external_id);
         $this->assertSame($this->student->id, $transcript->student_id);
         $this->assertSame('Physics', $transcript->subject);
-        $this->assertStringContainsString('Newton', $transcript->summary);
+        // The stored summary is the one we generated, not the provider's.
+        $this->assertSame("The student answered three questions on Newton's laws.", $transcript->summary);
         $this->assertSame('confirmed', $transcript->call_result);
         $this->assertStringContainsString('প্রথম সূত্রটি বলুন', $transcript->transcript);
 
@@ -144,21 +159,18 @@ class ProviderCallbackPayloadTest extends TestCase
 
         $this->assertSame(ExamTranscript::STATUS_UNMATCHED, $transcript->status);
         $this->assertSame(self::CALL_ID, $transcript->external_id);
-        // The content is still kept so a teacher can reconcile it.
-        $this->assertStringContainsString('Newton', $transcript->summary);
+        // The transcript is still kept so a teacher can reconcile it, but nothing was
+        // summarised — that only happens once the test belongs to a student.
         $this->assertNotEmpty($transcript->transcript);
+        $this->assertNull($transcript->summary);
         // No marks were invented for an unidentified student.
         $this->assertDatabaseCount('results', 0);
         Http::assertNotSent(fn ($request) => str_contains($request->url(), 'openai.com'));
     }
 
-    public function test_the_summary_is_passed_to_the_ai_alongside_the_transcript(): void
+    public function test_the_transcript_is_summarised_with_the_evaluation_prompt_as_system(): void
     {
-        Http::fake(['api.openai.com/*' => Http::response([
-            'choices' => [['message' => ['content' => json_encode([
-                'marks_obtained' => 60, 'feedback' => 'Fine.',
-            ])]]],
-        ])]);
+        $this->fakeOpenAiPair();
 
         CallSession::factory()->create([
             'student_id' => $this->student->id,
@@ -166,15 +178,51 @@ class ProviderCallbackPayloadTest extends TestCase
             'subject' => 'Physics',
         ]);
 
-        $this->postCallback($this->payload());
+        $payload = $this->payload();
+        $this->postCallback($payload);
 
-        Http::assertSent(function ($request) {
-            $prompt = $request->data()['messages'][1]['content'];
+        Http::assertSent(function ($request) use ($payload) {
+            $messages = $request->data()['messages'];
 
-            return str_contains($prompt, 'Provider call summary:')
-                && str_contains($prompt, "Newton's laws")
-                && str_contains($prompt, 'Call transcript:');
+            // The summarising call: evaluation prompt as system, transcript as the only input.
+            return $messages[0]['content'] === 'Score this spoken exam.'
+                && $messages[1]['content'] === $payload['transcript'];
         });
+    }
+
+    public function test_the_provider_summary_is_never_sent_to_the_ai(): void
+    {
+        $this->fakeOpenAiPair();
+
+        CallSession::factory()->create([
+            'student_id' => $this->student->id,
+            'call_id' => self::CALL_ID,
+            'subject' => 'Physics',
+        ]);
+
+        $this->postCallback($this->payload(['summary' => 'PROVIDER-SUMMARY-MARKER']));
+
+        Http::assertNotSent(fn ($request) => str_contains(
+            json_encode($request->data()), 'PROVIDER-SUMMARY-MARKER'
+        ));
+    }
+
+    public function test_the_provider_summary_is_not_persisted_anywhere_on_the_record(): void
+    {
+        $this->fakeOpenAiPair();
+
+        CallSession::factory()->create([
+            'student_id' => $this->student->id,
+            'call_id' => self::CALL_ID,
+            'subject' => 'Physics',
+        ]);
+
+        $this->postCallback($this->payload(['summary' => 'PROVIDER-SUMMARY-MARKER']));
+
+        $transcript = ExamTranscript::first();
+
+        $this->assertNotSame('PROVIDER-SUMMARY-MARKER', $transcript->summary);
+        $this->assertStringNotContainsString('PROVIDER-SUMMARY-MARKER', json_encode($transcript->payload));
     }
 
     public function test_a_repeated_callback_for_the_same_call_id_is_ignored(): void

@@ -679,6 +679,50 @@ dt {
     height: 100%;
 }
 
+.meter-lg {
+    height: 12px;
+}
+
+/* Voice test result ------------------------------------------------------- */
+
+.avatar-lg {
+    font-size: 1.05rem;
+    height: 56px;
+    width: 56px;
+}
+
+.avatar-muted {
+    background: var(--pia-surface-alt);
+    color: var(--pia-muted);
+}
+
+.score-readout {
+    align-items: baseline;
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+}
+
+.score-value {
+    font-size: 2.6rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.score-value span {
+    color: var(--pia-muted);
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+details > summary {
+    cursor: pointer;
+}
+
+details > summary:hover {
+    color: var(--pia-accent-2);
+}
+
 /* Headline treatment borrowed from the source site's gradient text. */
 .gradient-text {
     background: linear-gradient(270deg, #4f56ff, #ff4980);

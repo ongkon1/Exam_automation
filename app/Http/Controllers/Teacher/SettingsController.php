@@ -17,6 +17,9 @@ class SettingsController extends Controller
         return view('teacher.settings.edit', [
             'teacher' => $teacher,
             'settings' => $teacher->teacherSetting()->firstOrCreate([]),
+            // Whether the running environment can actually reach OpenAI. Only the fact,
+            // never the key itself.
+            'openAiConfigured' => filled(config('services.openai.key')),
         ]);
     }
 

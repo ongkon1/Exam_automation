@@ -98,8 +98,10 @@ class WebCallTranscriptWebhookTest extends TestCase
         $transcript = ExamTranscript::sole();
 
         $this->assertSame('Examiner: State the first law.', $transcript->transcript);
-        $this->assertSame('### Call Summary', $transcript->summary);
         $this->assertSame('confirmed', $transcript->call_result);
+
+        // The provider's summary is discarded; ours is written from the transcript later.
+        $this->assertNull($transcript->summary);
     }
 
     public function test_a_phone_number_in_the_payload_never_decides_the_student(): void

@@ -51,11 +51,12 @@ class WebCallTranscriptController extends Controller
             'phone' => $session?->phone ?? '',
             'subject' => $session?->subject,
             'transcript' => $data['transcript'] ?? '',
-            'summary' => $data['summary'] ?? null,
+            // The provider's own summary is discarded — we generate our own from the
+            // transcript using the teacher's evaluation prompt.
             'call_result' => $data['result'] ?? null,
             'external_id' => $callId,
             'status' => ExamTranscript::STATUS_PENDING,
-            'payload' => $request->except('transcript'),
+            'payload' => $request->except(['transcript', 'summary']),
         ]);
 
         // With no call id there is nothing to look the call up by, so it can never be

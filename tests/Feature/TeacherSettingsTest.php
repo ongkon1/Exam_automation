@@ -64,6 +64,71 @@ class TeacherSettingsTest extends TestCase
         $this->assertTrue(Hash::check('a-new-password', $teacher->password));
     }
 
+    public function test_the_settings_page_reports_whether_the_openai_key_is_live(): void
+    {
+        $teacher = User::factory()->teacher()->create();
+
+        config(['services.openai.key' => null]);
+
+        $this->actingAs($teacher)
+            ->get(route('teacher.settings.edit'))
+            ->assertOk()
+            ->assertSee('OpenAI key missing')
+            ->assertSee('config:clear');
+    }
+
+    public function test_the_settings_page_confirms_a_configured_key_without_revealing_it(): void
+    {
+        $teacher = User::factory()->teacher()->create();
+
+        config(['services.openai.key' => 'sk-super-secret-value']);
+
+        $this->actingAs($teacher)
+            ->get(route('teacher.settings.edit'))
+            ->assertOk()
+            ->assertSee('OpenAI key configured')
+            ->assertDontSee('sk-super-secret-value');
+    }
+
+    public function test_prompts_accept_twenty_thousand_characters(): void
+    {
+        $teacher = User::factory()->teacher()->create();
+
+        // Bengali, as the real prompts are written — 3 bytes per character.
+        $long = str_repeat('তু', 10000);
+
+        $this->assertSame(20000, mb_strlen($long));
+
+        $this->actingAs($teacher)
+            ->put(route('teacher.settings.update'), [
+                'name' => $teacher->name,
+                'email' => $teacher->email,
+                'system_prompt' => $long,
+                'evaluation_prompt' => $long,
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('teacher.settings.edit'));
+
+        $settings = $teacher->refresh()->teacherSetting;
+
+        // Stored whole, not truncated.
+        $this->assertSame(20000, mb_strlen($settings->system_prompt));
+        $this->assertSame(20000, mb_strlen($settings->evaluation_prompt));
+    }
+
+    public function test_prompts_are_rejected_beyond_twenty_thousand_characters(): void
+    {
+        $teacher = User::factory()->teacher()->create();
+
+        $this->actingAs($teacher)
+            ->put(route('teacher.settings.update'), [
+                'name' => $teacher->name,
+                'email' => $teacher->email,
+                'evaluation_prompt' => str_repeat('a', 20001),
+            ])
+            ->assertSessionHasErrors('evaluation_prompt');
+    }
+
     public function test_email_must_stay_unique_across_users(): void
     {
         $teacher = User::factory()->teacher()->create();

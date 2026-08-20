@@ -67,6 +67,23 @@ class OpenAiEvaluator
     }
 
     /**
+     * Summarise a call transcript.
+     *
+     * The teacher's **evaluation prompt** is used as the system prompt here — it is the
+     * field that describes how the call should be written up — and the raw transcript is
+     * the only user content.
+     *
+     * @throws RuntimeException when the API key is missing or the call fails
+     */
+    public function summarise(ExamTranscript $transcript, TeacherSetting $settings): string
+    {
+        return $this->request([
+            ['role' => 'system', 'content' => $settings->evaluation_prompt],
+            ['role' => 'user', 'content' => $transcript->transcript],
+        ]);
+    }
+
+    /**
      * Score a voice-exam transcript and write feedback, using the teacher's saved prompts.
      *
      * Unlike a written result, a transcript carries no marks, so the model is asked to
@@ -126,14 +143,8 @@ class OpenAiEvaluator
             'Marks available: '.$fullMarks,
         ];
 
-        $block = "Voice exam details:\n".implode("\n", $lines);
-
-        // The provider sends its own summary of the call; pass it along when present.
-        if (filled($transcript->summary)) {
-            $block .= "\n\nProvider call summary:\n".$transcript->summary;
-        }
-
-        return $block."\n\nCall transcript:\n".$transcript->transcript;
+        return "Voice exam details:\n".implode("\n", $lines)
+            ."\n\nCall transcript:\n".$transcript->transcript;
     }
 
     /**

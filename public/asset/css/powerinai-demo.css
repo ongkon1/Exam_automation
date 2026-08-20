@@ -1,0 +1,343 @@
+/*
+ * PowerinAI voice assistant landing page.
+ *
+ * Standalone: this page does not use the app theme. Everything it needs is here.
+ */
+
+:root {
+    --pa-ink: #14142b;
+    --pa-muted: #9aa0b4;
+    --pa-body: #6b7192;
+    --pa-card: #ffffff;
+    --pa-line: #eceef5;
+    --pa-indigo: #6c63ff;
+    --pa-violet: #8b5cf6;
+    --pa-pink: #ec3f7e;
+    --pa-cyan: #22d3ee;
+    --pa-online: #22c55e;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: #fbfbfe;
+    color: var(--pa-ink);
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* Soft colour wash: pink low-left, periwinkle top-right, both very diffuse. */
+body::before {
+    background:
+        radial-gradient(46rem 34rem at 6% 88%, rgba(244, 114, 182, 0.34), transparent 62%),
+        radial-gradient(44rem 34rem at 96% 6%, rgba(129, 140, 248, 0.30), transparent 62%),
+        radial-gradient(38rem 30rem at 88% 96%, rgba(165, 180, 252, 0.22), transparent 65%);
+    content: "";
+    inset: 0;
+    position: fixed;
+    z-index: 0;
+}
+
+/* Faint contour lines, echoing the topographic texture in the artwork. */
+.pa-contours {
+    inset: 0;
+    pointer-events: none;
+    position: fixed;
+    z-index: 0;
+}
+
+.pa-contours svg {
+    height: 100%;
+    width: 100%;
+}
+
+.pa-page {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 72px 20px;
+    position: relative;
+    z-index: 1;
+}
+
+/* ------------------------------------------------------------------ logo --- */
+
+.pa-logo {
+    margin-bottom: 54px;
+    text-align: center;
+    width: 100%;
+}
+
+.pa-logo-img {
+    display: block;
+    height: auto;
+    margin: 0 auto;
+    max-width: 100%;
+    /* The supplied artwork is a JPEG on solid white; multiply drops that white box
+       against the page wash while leaving the dark ink and gradient untouched. */
+    mix-blend-mode: multiply;
+    width: clamp(280px, 46vw, 560px);
+}
+
+/* ------------------------------------------------------------------ card --- */
+
+.pa-card {
+    background: var(--pa-card);
+    border: 1px solid rgba(236, 238, 245, 0.9);
+    border-radius: 26px;
+    box-shadow: 0 30px 70px -30px rgba(20, 20, 43, 0.28), 0 2px 8px rgba(20, 20, 43, 0.04);
+    max-width: 780px;
+    padding: 26px 30px 34px;
+    width: 100%;
+}
+
+.pa-card-head {
+    align-items: center;
+    display: flex;
+    gap: 14px;
+}
+
+.pa-avatar {
+    align-items: center;
+    background: #141420;
+    border-radius: 14px;
+    display: flex;
+    flex: 0 0 auto;
+    height: 52px;
+    justify-content: center;
+    width: 52px;
+}
+
+.pa-avatar img {
+    height: 26px;
+    width: auto;
+}
+
+.pa-card-title {
+    font-size: 1.24rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.pa-status {
+    align-items: center;
+    color: var(--pa-body);
+    display: flex;
+    font-size: 0.92rem;
+    gap: 7px;
+    margin-top: 3px;
+}
+
+.pa-status::before {
+    background: var(--pa-online);
+    border-radius: 50%;
+    content: "";
+    height: 8px;
+    width: 8px;
+}
+
+.pa-menu {
+    background: none;
+    border: 0;
+    color: var(--pa-muted);
+    cursor: pointer;
+    font-size: 1.4rem;
+    line-height: 1;
+    margin-left: auto;
+    padding: 4px 8px;
+}
+
+.pa-menu:hover { color: var(--pa-ink); }
+
+/* --------------------------------------------------------------- console --- */
+
+.pa-console {
+    align-items: center;
+    display: flex;
+    gap: clamp(6px, 3vw, 26px);
+    justify-content: center;
+    padding: 48px 0 8px;
+}
+
+.pa-wave {
+    align-items: center;
+    display: flex;
+    gap: 5px;
+    height: 96px;
+    justify-content: center;
+}
+
+.pa-wave span {
+    background: linear-gradient(180deg, #c7d2fe, #a5b4fc);
+    border-radius: 4px;
+    display: block;
+    height: var(--h, 20%);
+    opacity: 0.85;
+    width: 4px;
+}
+
+.pa-wave--left { justify-content: flex-end; }
+.pa-wave--right { justify-content: flex-start; }
+
+/* Mic ---------------------------------------------------------------------- */
+
+.pa-mic-shell {
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+    height: 226px;
+    justify-content: center;
+    position: relative;
+    width: 226px;
+}
+
+/* Dotted orbit */
+.pa-ring-dotted {
+    border: 2px dotted #d9dcf5;
+    border-radius: 50%;
+    inset: 8px;
+    position: absolute;
+}
+
+/* Diffuse halo behind the button */
+.pa-ring-glow {
+    background: radial-gradient(circle, rgba(199, 210, 254, 0.55), rgba(199, 210, 254, 0) 68%);
+    border-radius: 50%;
+    inset: 20px;
+    position: absolute;
+}
+
+.pa-mic {
+    align-items: center;
+    background: #fff;
+    border: 0;
+    border-radius: 50%;
+    box-shadow: 0 18px 40px -14px rgba(99, 102, 241, 0.45), 0 2px 6px rgba(20, 20, 43, 0.06);
+    cursor: pointer;
+    display: flex;
+    height: 132px;
+    justify-content: center;
+    position: relative;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s;
+    width: 132px;
+}
+
+.pa-mic:hover { transform: scale(1.04); }
+.pa-mic:active { transform: scale(0.98); }
+
+.pa-mic:focus-visible {
+    outline: 3px solid var(--pa-indigo);
+    outline-offset: 6px;
+}
+
+.pa-mic svg {
+    height: 46px;
+    width: 46px;
+}
+
+/* Expanding pulse, only while listening */
+.pa-pulse {
+    border: 2px solid rgba(139, 92, 246, 0.5);
+    border-radius: 50%;
+    inset: 34px;
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+}
+
+.is-listening .pa-pulse {
+    animation: pa-pulse 2.1s ease-out infinite;
+}
+
+.is-listening .pa-pulse:nth-of-type(2) { animation-delay: 0.7s; }
+
+@keyframes pa-pulse {
+    0%   { opacity: 0.7; transform: scale(0.85); }
+    100% { opacity: 0;   transform: scale(1.5); }
+}
+
+.is-listening .pa-wave span {
+    animation: pa-bar 1.15s ease-in-out infinite;
+}
+
+@keyframes pa-bar {
+    0%, 100% { transform: scaleY(0.45); }
+    50%      { transform: scaleY(1.25); }
+}
+
+/* --------------------------------------------------------------- prompts --- */
+
+.pa-prompt {
+    text-align: center;
+}
+
+.pa-prompt-title {
+    font-size: 1.32rem;
+    font-weight: 500;
+    margin: 0;
+}
+
+.pa-prompt-sub {
+    color: var(--pa-muted);
+    font-size: 1.02rem;
+    margin: 8px 0 0;
+}
+
+/* ----------------------------------------------------------------- input --- */
+
+.pa-input {
+    align-items: center;
+    background: #fff;
+    border: 1px solid var(--pa-line);
+    border-radius: 999px;
+    box-shadow: 0 6px 18px -12px rgba(20, 20, 43, 0.3);
+    cursor: pointer;
+    display: flex;
+    gap: 16px;
+    margin: 34px auto 0;
+    max-width: 500px;
+    padding: 15px 24px;
+    transition: border-color 0.25s, box-shadow 0.25s;
+    width: 100%;
+}
+
+.pa-input:hover,
+.pa-input:focus-visible {
+    border-color: #cdd2f0;
+    box-shadow: 0 10px 26px -14px rgba(99, 102, 241, 0.5);
+    outline: none;
+}
+
+.pa-input-label {
+    color: var(--pa-muted);
+    flex-grow: 1;
+    font-size: 1.06rem;
+    text-align: left;
+}
+
+.pa-input svg { flex: 0 0 auto; }
+
+@media (max-width: 640px) {
+    .pa-console { gap: 2px; padding-top: 30px; }
+    .pa-mic-shell { height: 190px; width: 190px; }
+    .pa-mic { height: 112px; width: 112px; }
+    .pa-mic svg { height: 38px; width: 38px; }
+    .pa-card { padding: 20px 18px 26px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .is-listening .pa-pulse,
+    .is-listening .pa-wave span {
+        animation: none;
+    }
+}

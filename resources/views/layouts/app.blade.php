@@ -80,7 +80,7 @@
                         </a>
                         <a class="nav-link {{ request()->routeIs('teacher.transcripts.*') ? 'active' : '' }}"
                            href="{{ route('teacher.transcripts.index') }}">
-                            <i class="bi bi-mic me-2"></i>Voice Transcripts
+                            <i class="bi bi-mic me-2"></i>Voice Test Results
                         </a>
                         <a class="nav-link {{ request()->routeIs('teacher.webhooks.*') ? 'active' : '' }}"
                            href="{{ route('teacher.webhooks.index') }}">

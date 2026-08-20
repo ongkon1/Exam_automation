@@ -25,6 +25,9 @@ Route::get('/', function () {
         : redirect()->route('login');
 });
 
+// Public marketing page for the voice assistant — no login required.
+Route::view('powerinai-demo', 'powerinai-demo')->name('powerinai-demo');
+
 Route::middleware('guest')->group(function () {
     Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('login', [LoginController::class, 'login']);
@@ -44,6 +47,8 @@ Route::middleware(['auth', 'role:teacher'])
         Route::post('results/{result}/evaluate', EvaluationController::class)->name('results.evaluate');
         Route::get('transcripts', [TranscriptController::class, 'index'])->name('transcripts.index');
         Route::get('transcripts/{transcript}', [TranscriptController::class, 'show'])->name('transcripts.show');
+        Route::post('transcripts/{transcript}/retry', [TranscriptController::class, 'retry'])
+            ->name('transcripts.retry');
         Route::get('webhooks', [WebhookLogController::class, 'index'])->name('webhooks.index');
         Route::get('webhooks/{webhook}', [WebhookLogController::class, 'show'])->name('webhooks.show');
         Route::delete('webhooks', [WebhookLogController::class, 'destroy'])->name('webhooks.destroy');

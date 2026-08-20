@@ -60,6 +60,19 @@
                     Both fields must be filled in before the <em>AI Evaluate</em> button becomes available on the
                     Results page.
                 </div>
+
+                <div class="mt-2">
+                    @if ($openAiConfigured)
+                        <span class="badge bg-success">OpenAI key configured</span>
+                    @else
+                        <span class="badge bg-danger">OpenAI key missing</span>
+                        <div class="text-muted small mt-1">
+                            Evaluations will fail on this server until <code>OPENAI_API_KEY</code> is set in its
+                            <code>.env</code> file. After setting it run <code>php artisan config:clear</code> —
+                            a cached config keeps serving the old, empty value.
+                        </div>
+                    @endif
+                </div>
             </div>
             <div class="card-body">
                 <div class="mb-3">
@@ -77,7 +90,10 @@
                               class="form-control @error('evaluation_prompt') is-invalid @enderror"
                               placeholder="e.g. Review the exam result below and give the student three specific suggestions for improvement.">{{ old('evaluation_prompt', $settings->evaluation_prompt) }}</textarea>
                     @error('evaluation_prompt')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    <div class="form-text">The instruction sent alongside each student's result data.</div>
+                    <div class="form-text">
+                        Sent alongside each student's result data, and used as the system prompt when a
+                        voice test transcript is summarised.
+                    </div>
                 </div>
             </div>
         </div>

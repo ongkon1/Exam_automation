@@ -20,8 +20,9 @@ class StoreWebCallTranscriptRequest extends FormRequest
         return [
             'call_id' => ['nullable', 'string', 'max:255'],
             'transcript' => ['nullable', 'string'],
-            'summary' => ['nullable', 'string'],
             'result' => ['nullable', 'string', 'max:255'],
+            // The provider may send a `summary`; it is accepted but neither validated
+            // into the payload nor stored — the summary is generated from the transcript.
         ];
     }
 

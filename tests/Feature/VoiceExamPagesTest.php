@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ExamTranscript;
+use App\Models\Result;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -142,31 +143,47 @@ class VoiceExamPagesTest extends TestCase
     public function test_teacher_sees_all_transcripts_and_the_unmatched_warning(): void
     {
         $teacher = User::factory()->teacher()->create();
-        ExamTranscript::factory()->create(['subject' => 'Physics']);
-        ExamTranscript::factory()->unmatched()->create(['subject' => 'Chemistry']);
+        $student = User::factory()->student()->create(['name' => 'Arif Hossain']);
+
+        // Rows are identified by student and phone; the list shows no subject column.
+        ExamTranscript::factory()->create(['student_id' => $student->id, 'phone' => '01711111111']);
+        ExamTranscript::factory()->unmatched()->create(['phone' => '01722222222']);
 
         $this->actingAs($teacher)
             ->get(route('teacher.transcripts.index'))
             ->assertOk()
-            ->assertSee('Physics')
-            ->assertSee('Chemistry')
+            ->assertSee('Arif Hossain')
+            ->assertSee('01711111111')
+            ->assertSee('01722222222')
             ->assertSee('could not be matched');
     }
 
     public function test_teacher_can_filter_transcripts_by_status(): void
     {
         $teacher = User::factory()->teacher()->create();
-        ExamTranscript::factory()->create(['subject' => 'Pending Subject']);
-        ExamTranscript::factory()->unmatched()->create(['subject' => 'Unmatched Subject']);
+        ExamTranscript::factory()->create(['phone' => '01711111111']);
+        ExamTranscript::factory()->unmatched()->create(['phone' => '01722222222']);
 
         $this->actingAs($teacher)
             ->get(route('teacher.transcripts.index', ['status' => ExamTranscript::STATUS_UNMATCHED]))
             ->assertOk()
-            ->assertSee('Unmatched Subject')
-            ->assertDontSee('Pending Subject');
+            ->assertSee('01722222222')
+            ->assertDontSee('01711111111');
     }
 
-    public function test_teacher_can_read_a_full_transcript(): void
+    public function test_the_list_shows_no_subject_or_status_column(): void
+    {
+        $teacher = User::factory()->teacher()->create();
+        ExamTranscript::factory()->create(['subject' => 'Astronomy']);
+
+        $this->actingAs($teacher)
+            ->get(route('teacher.transcripts.index'))
+            ->assertOk()
+            ->assertDontSee('<th>Subject</th>', false)
+            ->assertDontSee('Astronomy');
+    }
+
+    public function test_the_raw_transcript_is_hidden_on_the_result_page(): void
     {
         $teacher = User::factory()->teacher()->create();
         $transcript = ExamTranscript::factory()->create([
@@ -176,7 +193,42 @@ class VoiceExamPagesTest extends TestCase
         $this->actingAs($teacher)
             ->get(route('teacher.transcripts.show', $transcript))
             ->assertOk()
-            ->assertSee('Speed with direction.');
+            ->assertSee('Voice Test Result')
+            ->assertDontSee('Speed with direction.');
+
+        // Hidden from the screen only — the transcript is still stored and still fed to the AI.
+        $this->assertStringContainsString('Speed with direction.', $transcript->fresh()->transcript);
+    }
+
+    public function test_the_result_page_still_shows_the_score_and_feedback(): void
+    {
+        $teacher = User::factory()->teacher()->create();
+        $student = User::factory()->student()->create(['name' => 'Nusrat Jahan']);
+
+        $result = Result::factory()->create([
+            'student_id' => $student->id,
+            'full_marks' => 100,
+            'marks_obtained' => 72,
+            'grade' => 'A',
+            'ai_feedback' => 'Clear answers, work on units.',
+        ]);
+
+        $transcript = ExamTranscript::factory()->create([
+            'student_id' => $student->id,
+            'result_id' => $result->id,
+            'status' => ExamTranscript::STATUS_EVALUATED,
+            'summary' => 'The student covered five questions.',
+        ]);
+
+        $this->actingAs($teacher)
+            ->get(route('teacher.transcripts.show', $transcript))
+            ->assertOk()
+            ->assertSee('Nusrat Jahan')
+            ->assertSee('Grade A')
+            ->assertSee('72.00 / 100')
+            ->assertSee('Clear answers, work on units.')
+            ->assertSee('The student covered five questions.')
+            ->assertSee($transcript->external_id);
     }
 
     public function test_students_cannot_reach_the_teacher_transcript_pages(): void
