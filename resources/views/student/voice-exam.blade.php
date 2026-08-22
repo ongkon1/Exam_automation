@@ -19,12 +19,10 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.25);
             color: #fff;
         }
-        .voice-exam-card dt,
         .voice-exam-card .form-label,
         .voice-exam-card .form-text {
             color: rgba(255, 255, 255, 0.8) !important;
         }
-        .voice-exam-card dd { color: #fff; }
         .voice-exam-card a {
             color: #fff;
             text-decoration: underline;
@@ -69,6 +67,106 @@
             cursor: not-allowed;
         }
 
+        /* The avatar stands alone at the top of the panel; the identity fields below it
+           are filled from the profile and hidden. */
+        .webcall-identity {
+            align-items: center;
+            display: flex;
+            justify-content: center;
+            padding: 8px 0 20px;
+        }
+
+        .webcall-identity #avatar-container {
+            flex: 0 0 auto;
+            height: 120px !important;
+            margin: 0 !important;
+            width: 120px !important;
+        }
+
+        .webcall-identity #spcl-avatar {
+            height: 120px !important;
+            margin: 0 !important;
+            width: 120px !important;
+        }
+
+        /* Live camera, shown in place of the student's details during a call. */
+        .webcall-camera {
+            border-radius: var(--pia-radius-sm);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .webcall-camera video {
+            background: #000;
+            display: block;
+            height: auto;
+            width: 100%;
+            /* Mirror it, the way people expect to see themselves. */
+            transform: scaleX(-1);
+        }
+
+        /* The avatar moves onto the video while the call runs, inset bottom-right.
+           The vendor sets `position: relative` inline on the container, so every
+           positioning declaration here has to be !important to outrank it. */
+        .webcall-camera #avatar-container {
+            bottom: 14px !important;
+            height: 88px !important;
+            left: auto !important;
+            margin: 0 !important;
+            position: absolute !important;
+            right: 14px !important;
+            top: auto !important;
+            width: 88px !important;
+            z-index: 2;
+        }
+
+        .webcall-camera #spcl-avatar {
+            border: 2px solid rgba(255, 255, 255, 0.85);
+            border-radius: 50%;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4) !important;
+            height: 88px !important;
+            margin: 0 !important;
+            width: 88px !important;
+        }
+
+        /* The vendor's speaking rings are drawn around a 120px avatar, so at this size
+           they spill past the video edge and get clipped. */
+        .webcall-camera .spcl-audio-ring {
+            display: none !important;
+        }
+
+        .webcall-camera-label {
+            align-items: center;
+            background: rgba(0, 0, 0, 0.55);
+            border-radius: 999px;
+            color: #fff;
+            display: flex;
+            font-size: 0.75rem;
+            gap: 6px;
+            left: 10px;
+            padding: 4px 10px;
+            position: absolute;
+            top: 10px;
+        }
+
+        .webcall-camera-label::before {
+            background: #ef4444;
+            border-radius: 50%;
+            content: "";
+            height: 8px;
+            width: 8px;
+            animation: webcall-rec 1.4s ease-in-out infinite;
+        }
+
+        @keyframes webcall-rec {
+            0%, 100% { opacity: 1; }
+            50%      { opacity: 0.25; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .webcall-camera-label::before { animation: none; }
+        }
+
         /* Match the loading state and the no-phone notice to the panel. */
         .voice-exam-card #webcall-placeholder {
             background-color: rgba(255, 255, 255, 0.12) !important;
@@ -94,20 +192,9 @@
             <div class="card shadow-sm voice-exam-card">
                 <div class="card-header"><strong>Start an Exam</strong></div>
                 <div class="card-body">
-                    <dl class="row mb-3 small">
-                        <dt class="col-4 text-muted">Name</dt>
-                        <dd class="col-8 mb-1">{{ $student->name }}</dd>
-                        <dt class="col-4 text-muted">Phone</dt>
-                        <dd class="col-8 mb-0">{{ $student->phone ?: '—' }}</dd>
-                    </dl>
-
-                    <p class="form-text mt-0 mb-3">
-                        The call uses the name and number on your profile — your result is matched back to
-                        you by that number. The examiner will ask which subjects you are sitting.
-                        <a href="{{ route('student.profile.edit') }}">Update profile</a>
-                    </p>
-
-                    {{-- The Speaklar widget is relocated into this container by voice-exam-embed.js. --}}
+                    {{-- The Speaklar widget is relocated into this container by voice-exam-embed.js.
+                         The name and number it needs come from these data attributes, so they are
+                         no longer printed on the card. --}}
                     <div id="webcall-widget"
                          data-student-id="{{ $student->id }}"
                          data-name="{{ $student->name }}"

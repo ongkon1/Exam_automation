@@ -179,9 +179,14 @@
             console.info('[voice-exam] exam started, call id', callId || '(not provided)');
 
             post(sessionUrl(), callId ? { call_id: callId } : {});
+
+            // Swap the student's details for a live camera preview.
+            startCamera();
         }
 
         function finish() {
+            stopCamera();
+
             if (registered) {
                 post(sessionEndUrl(), callId ? { call_id: callId } : {});
             }
@@ -221,6 +226,124 @@
         return true;
     }
 
+    /* ---------------------------------------------------------------------
+     * Avatar and camera
+     *
+     * The avatar is centred at the top of the panel on its own — the name and number
+     * fields below it are filled from the profile and hidden. When a call starts the
+     * avatar moves onto the live camera preview, inset in its corner.
+     * ------------------------------------------------------------------- */
+
+    var identityRow = null;
+    var avatarEl = null;
+    var cameraWrap = null;
+    var cameraVideo = null;
+    var cameraStream = null;
+
+    function buildIdentityRow(popup) {
+        var avatar = popup.querySelector('#avatar-container');
+
+        if (!avatar) {
+            return;
+        }
+
+        avatarEl = avatar;
+        identityRow = document.createElement('div');
+        identityRow.className = 'webcall-identity';
+
+        avatar.parentNode.insertBefore(identityRow, avatar);
+        identityRow.appendChild(avatar);
+
+        // Camera preview lives alongside, hidden until a call starts.
+        cameraWrap = document.createElement('div');
+        cameraWrap.className = 'webcall-camera';
+        cameraWrap.style.display = 'none';
+
+        cameraVideo = document.createElement('video');
+        cameraVideo.setAttribute('autoplay', '');
+        cameraVideo.setAttribute('playsinline', '');
+        cameraVideo.muted = true;
+
+        var label = document.createElement('span');
+        label.className = 'webcall-camera-label';
+        label.textContent = 'Recording';
+
+        cameraWrap.appendChild(cameraVideo);
+        cameraWrap.appendChild(label);
+        identityRow.parentNode.insertBefore(cameraWrap, identityRow.nextSibling);
+    }
+
+    function startCamera() {
+        if (!cameraWrap || cameraStream) {
+            return;
+        }
+
+        // Not available over plain HTTP, and absent in some embedded browsers.
+        if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+            console.warn('[voice-exam] camera unavailable — a secure context (HTTPS) is required.');
+
+            return;
+        }
+
+        // Audio is left alone: the call already owns the microphone.
+        navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+            .then(function (stream) {
+                cameraStream = stream;
+                cameraVideo.srcObject = stream;
+
+                if (identityRow) {
+                    identityRow.style.display = 'none';
+                }
+
+                // The avatar rides along, inset over the bottom-right of the video, so the
+                // assistant stays on screen while the student is being filmed.
+                if (avatarEl) {
+                    cameraWrap.appendChild(avatarEl);
+                }
+
+                cameraWrap.style.display = '';
+            })
+            .catch(function (error) {
+                // Permission refused or no device — the student info simply stays put.
+                console.warn('[voice-exam] camera not started', error);
+            });
+    }
+
+    function stopCamera() {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(function (track) { track.stop(); });
+            cameraStream = null;
+        }
+
+        if (cameraVideo) {
+            cameraVideo.srcObject = null;
+        }
+
+        if (cameraWrap) {
+            cameraWrap.style.display = 'none';
+        }
+
+        // Put the avatar back at the head of the identity row.
+        if (identityRow) {
+            if (avatarEl) {
+                identityRow.insertBefore(avatarEl, identityRow.firstChild);
+            }
+
+            identityRow.style.display = '';
+        }
+    }
+
+    /**
+     * The identity fields are hidden, so nobody would notice if the vendor cleared or
+     * reformatted them. They are re-asserted before every call rather than set once.
+     */
+    function fillIdentity() {
+        setValue('name', profile.name);
+        setValue('targetId', toNationalBd(profile.phone));
+        setValue('email', profile.email);
+        setValue('website', profile.website);
+    }
+
     /**
      * The vendor rewrites the call button's markup every time a call ends, so the
      * label is re-applied whenever it reappears rather than set once.
@@ -244,6 +367,10 @@
         }
 
         relabel();
+
+        // Capture phase: the values are back in place before the vendor's own click
+        // handler reads them.
+        button.addEventListener('click', fillIdentity, true);
 
         // Only rewrites nodes still holding the old label, so this cannot loop.
         new MutationObserver(relabel).observe(button, {
@@ -277,26 +404,21 @@
         hide(el('country-code'));
         hide(document.querySelector('.' + PREFIX + '-country-box'));
 
-        var nameInput = setValue('name', profile.name);
-        var phoneInput = setValue('targetId', toNationalBd(profile.phone));
+        // The vendor will not place a call without these, but the student has nothing to
+        // choose here — the values come from their profile — so they are filled and hidden.
+        fillIdentity();
 
-        [nameInput, phoneInput].forEach(function (node) {
+        ['name', 'targetId', 'email', 'website'].forEach(function (id) {
+            var node = el(id);
+
             if (node) {
                 node.readOnly = true;
                 node.setAttribute('aria-readonly', 'true');
-            }
-        });
-
-        // Required by the vendor's validation, but not part of the exam flow.
-        var emailInput = setValue('email', profile.email);
-        var websiteInput = setValue('website', profile.website);
-
-        [emailInput, websiteInput].forEach(function (node) {
-            if (node) {
                 hide(node.parentElement || node);
             }
         });
 
+        buildIdentityRow(popup);
         watchCallButtonLabel();
 
         container.classList.add('webcall-ready');
